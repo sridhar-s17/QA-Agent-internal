@@ -1,11 +1,9 @@
 {
   "authentication": {
     "phase": "Discovery",
-    "description": "Browser initialization, login, and prompt selection",
+    "description": "Complete authentication: browser initialization, login, and prompt selection",
     "selenium_functions": [
-      "initialize_browser",
-      "login",
-      "select_default_prompt"
+      "execute_authentication_phase"
     ],
     "step_numbers": [1, 2]
   },
