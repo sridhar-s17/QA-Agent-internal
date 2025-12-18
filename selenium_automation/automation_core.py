@@ -287,9 +287,12 @@ class SeleniumAutomationCore:
             self.context.end_phase("authentication", success=False)
             return False, f"Login failed: {e}"
     
-    def select_default_prompt(self) -> Tuple[bool, str]:
+    def select_default_prompt(self, random_selection=True) -> Tuple[bool, str]:
         """
-        Select default prompt in studio.
+        Select prompt in studio - can be random or default (first).
+        
+        Args:
+            random_selection (bool): If True, selects random card. If False, selects first card.
         
         Returns:
             Tuple[bool, str]: (success, message)
@@ -303,39 +306,84 @@ class SeleniumAutomationCore:
             self.logger.info("⏳ Waiting for studio page to load...")
             time.sleep(3)
             
-            self.logger.info("🎯 Looking for default prompt option...")
-            prompt_selector = self.elements['studio']['default_prompt']
+            self.logger.info("🎯 Looking for prompt cards...")
+            
+            # First, try to find all available prompt cards
+            all_cards_selector = self.elements['studio']['all_prompt_cards']
             
             WebDriverWait(self.driver, 15).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, prompt_selector))
+                EC.presence_of_element_located((By.CSS_SELECTOR, all_cards_selector))
             )
             
-            prompt_cards = self.driver.find_elements(By.CSS_SELECTOR, prompt_selector)
-            if prompt_cards:
-                self.logger.info(f"📋 Found {len(prompt_cards)} prompt card(s)")
+            # Get all available prompt cards
+            all_prompt_cards = self.driver.find_elements(By.CSS_SELECTOR, all_cards_selector)
+            
+            if all_prompt_cards:
+                self.logger.info(f"📋 Found {len(all_prompt_cards)} prompt card(s)")
                 
                 # Take screenshot before selection
                 pre_selection_screenshot = self._take_screenshot("prompt_selection", "prompt_cards_available")
                 
-                self.logger.info("✅ Clicking default prompt (first option)...")
-                prompt_cards[0].click()
+                # Select card based on random_selection parameter
+                if random_selection and len(all_prompt_cards) > 1:
+                    import random
+                    selected_index = random.randint(0, len(all_prompt_cards) - 1)
+                    selected_card = all_prompt_cards[selected_index]
+                    self.logger.info(f"🎲 Randomly selected card #{selected_index + 1} out of {len(all_prompt_cards)}")
+                else:
+                    selected_index = 0
+                    selected_card = all_prompt_cards[0]
+                    self.logger.info(f"✅ Selected default card (first option) out of {len(all_prompt_cards)}")
+                
+                # Log card details if available
+                try:
+                    card_text = selected_card.text[:100] if selected_card.text else "No text available"
+                    self.logger.info(f"📝 Selected card text: {card_text}")
+                except:
+                    pass
+                
+                # Click the selected card
+                selected_card.click()
                 time.sleep(2)
                 
                 # Take screenshot after selection
-                post_selection_screenshot = self._take_screenshot("prompt_selection", "prompt_selected")
+                post_selection_screenshot = self._take_screenshot("prompt_selection", f"card_{selected_index}_selected")
                 
-                self.logger.info("✅ Default prompt selected successfully")
+                selection_type = "random" if random_selection and len(all_prompt_cards) > 1 else "default"
+                self.logger.info(f"✅ {selection_type.capitalize()} prompt selected successfully")
                 
                 self.context.end_phase("prompt_selection", success=True)
-                self.context.outputs["prompt_selection"] = "SUCCESS"
+                self.context.outputs["prompt_selection"] = f"SUCCESS - {selection_type} card {selected_index + 1}/{len(all_prompt_cards)}"
                 
-                return True, "Default prompt selected"
+                return True, f"{selection_type.capitalize()} prompt selected (card {selected_index + 1}/{len(all_prompt_cards)})"
             else:
-                self.logger.error("⚠️ No prompt cards found")
-                error_screenshot = self._take_screenshot("prompt_selection", "no_prompts_found", is_error=True)
-                self.context.add_error("prompt_selection", "No prompt cards found", error_screenshot)
-                self.context.end_phase("prompt_selection", success=False)
-                return False, "No prompt cards found"
+                # Fallback to original selector if new selector doesn't work
+                self.logger.warning("⚠️ New selector didn't find cards, trying fallback...")
+                fallback_selector = self.elements['studio']['default_prompt']
+                
+                fallback_cards = self.driver.find_elements(By.CSS_SELECTOR, fallback_selector)
+                if fallback_cards:
+                    self.logger.info(f"📋 Found {len(fallback_cards)} prompt card(s) with fallback selector")
+                    
+                    pre_selection_screenshot = self._take_screenshot("prompt_selection", "fallback_cards_available")
+                    
+                    fallback_cards[0].click()
+                    time.sleep(2)
+                    
+                    post_selection_screenshot = self._take_screenshot("prompt_selection", "fallback_selected")
+                    
+                    self.logger.info("✅ Fallback prompt selected successfully")
+                    
+                    self.context.end_phase("prompt_selection", success=True)
+                    self.context.outputs["prompt_selection"] = "SUCCESS - fallback"
+                    
+                    return True, "Fallback prompt selected"
+                else:
+                    self.logger.error("⚠️ No prompt cards found with any selector")
+                    error_screenshot = self._take_screenshot("prompt_selection", "no_prompts_found", is_error=True)
+                    self.context.add_error("prompt_selection", "No prompt cards found", error_screenshot)
+                    self.context.end_phase("prompt_selection", success=False)
+                    return False, "No prompt cards found"
                 
         except Exception as e:
             self.logger.error(f"❌ Prompt selection failed: {e}")
@@ -407,6 +455,35 @@ class SeleniumAutomationCore:
     def get_elements(self):
         """Get the elements dictionary"""
         return self.elements
+    
+    def get_available_prompt_cards(self) -> Tuple[int, list]:
+        """
+        Get information about available prompt cards.
+        
+        Returns:
+            Tuple[int, list]: (count, list of card texts)
+        """
+        try:
+            if not self.driver:
+                return 0, []
+            
+            # Try to find all available prompt cards
+            all_cards_selector = self.elements['studio']['all_prompt_cards']
+            all_prompt_cards = self.driver.find_elements(By.CSS_SELECTOR, all_cards_selector)
+            
+            card_info = []
+            for i, card in enumerate(all_prompt_cards):
+                try:
+                    card_text = card.text[:50] if card.text else f"Card {i+1}"
+                    card_info.append(f"Card {i+1}: {card_text}")
+                except:
+                    card_info.append(f"Card {i+1}: Unable to read text")
+            
+            return len(all_prompt_cards), card_info
+            
+        except Exception as e:
+            self.logger.warning(f"Could not get prompt card info: {e}")
+            return 0, []
     
     # ==================== PLACEHOLDER METHODS FOR FUTURE PHASES ====================
     
