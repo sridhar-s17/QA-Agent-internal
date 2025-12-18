@@ -146,53 +146,7 @@ class SeleniumAutomationCore:
         self.username = os.getenv("QA_USERNAME", "sridharofficial17@gmail.com")
         self.password = os.getenv("QA_PASSWORD", "Pillir@111")
     
-    def initialize_browser(self) -> bool:
-        """
-        Initialize Chrome browser and setup logging.
-        
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        try:
-            # Setup logging using existing function
-            self.logger, self.session_dir, self.attachments_dir, self.success_dir, self.error_dir = setup_logging()
-            
-            # Load element selectors
-            try:
-                self.elements = load_elements()
-                self.logger.info("✅ Elements loaded successfully")
-            except Exception as e:
-                self.logger.warning(f"⚠️ Could not load elements.json: {e}")
-                self.elements = self._get_default_elements()
-            
-            # Initialize WebDriver
-            self.logger.info("🚀 Initializing Chrome WebDriver...")
-            options = webdriver.ChromeOptions()
-            options.add_argument('--start-maximized')
-            options.add_argument('--disable-blink-features=AutomationControlled')
-            options.add_experimental_option("excludeSwitches", ["enable-automation"])
-            options.add_experimental_option('useAutomationExtension', False)
-            
-            self.driver = webdriver.Chrome(options=options)
-            self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-            
-            # Set browser session info in context
-            session_id = self.driver.session_id
-            tab_handle = self.driver.current_window_handle
-            self.context.set_browser_session(session_id, tab_handle)
-            
-            self.logger.info("✅ Chrome WebDriver initialized")
-            self.logger.info(f"Session ID: {session_id}")
-            self.logger.info(f"Tab Handle: {tab_handle}")
-            
-            return True
-            
-        except Exception as e:
-            if self.logger:
-                self.logger.error(f"❌ Failed to initialize browser: {e}")
-            else:
-                print(f"❌ Failed to initialize browser: {e}")
-            return False
+
     
     def _get_default_elements(self) -> Dict[str, Any]:
         """Get default element selectors if elements.json is not available"""
@@ -211,139 +165,7 @@ class SeleniumAutomationCore:
             }
         }
     
-    def login(self) -> Tuple[bool, str]:
-        """
-        Perform login to the platform.
-        
-        Returns:
-            Tuple[bool, str]: (success, message)
-        """
-        try:
-            self.context.start_phase("authentication")
-            self.logger.info("="*50)
-            self.logger.info("PHASE 1: AUTHENTICATION & SETUP - LOGIN")
-            self.logger.info("="*50)
-            
-            # Navigate to platform
-            self.logger.info(f"🌐 Navigating to {self.platform_url}...")
-            self.driver.get(self.platform_url)
-            
-            # Take screenshot of login page
-            login_screenshot = self._take_screenshot("authentication", "login_page")
-            
-            self.logger.info("⏳ Waiting for login page to load...")
-            time.sleep(2)
-            
-            # Enter username
-            self.logger.info(f"👤 Entering username: {self.username}")
-            username_field = find_element_safe(self.driver, self.elements['login']['username_input'])
-            username_field.clear()
-            username_field.send_keys(self.username)
-            self.logger.info("✅ Username entered")
-            
-            # Enter password
-            self.logger.info("🔑 Entering password...")
-            password_field = find_element_safe(self.driver, self.elements['login']['password_input'])
-            password_field.clear()
-            password_field.send_keys(self.password)
-            self.logger.info("✅ Password entered")
-            
-            # Click login button
-            self.logger.info("🔓 Clicking login button...")
-            click_element_safe(self.driver, self.elements['login']['login_button'])
-            
-            self.logger.info("✅ Login submitted successfully")
-            
-            # Wait for studio screen to load
-            self.logger.info("⏳ Waiting 3 seconds for studio screen to load...")
-            time.sleep(3)
-            
-            # Take screenshot after login
-            studio_screenshot = self._take_screenshot("authentication", "studio_loaded")
-            
-            # Verify login success by checking for studio elements
-            try:
-                WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, self.elements['studio']['default_prompt']))
-                )
-                self.logger.info("✅ Login successful - Studio page loaded")
-                
-                self.context.end_phase("authentication", success=True)
-                self.context.outputs["login"] = "SUCCESS"
-                
-                return True, "Login successful"
-                
-            except Exception as e:
-                self.logger.error(f"❌ Login verification failed: {e}")
-                error_screenshot = self._take_screenshot("authentication", "login_failed", is_error=True)
-                self.context.add_error("authentication", f"Login verification failed: {e}", error_screenshot)
-                self.context.end_phase("authentication", success=False)
-                return False, f"Login verification failed: {e}"
-            
-        except Exception as e:
-            self.logger.error(f"❌ Login failed: {e}")
-            error_screenshot = self._take_screenshot("authentication", "login_error", is_error=True)
-            self.context.add_error("authentication", f"Login failed: {e}", error_screenshot)
-            self.context.end_phase("authentication", success=False)
-            return False, f"Login failed: {e}"
-    
-    def select_default_prompt(self) -> Tuple[bool, str]:
-        """
-        Select default prompt in studio.
-        
-        Returns:
-            Tuple[bool, str]: (success, message)
-        """
-        try:
-            self.context.start_phase("prompt_selection")
-            self.logger.info("="*50)
-            self.logger.info("PHASE 1: AUTHENTICATION & SETUP - SELECT PROMPT")
-            self.logger.info("="*50)
-            
-            self.logger.info("⏳ Waiting for studio page to load...")
-            time.sleep(3)
-            
-            self.logger.info("🎯 Looking for default prompt option...")
-            prompt_selector = self.elements['studio']['default_prompt']
-            
-            WebDriverWait(self.driver, 15).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, prompt_selector))
-            )
-            
-            prompt_cards = self.driver.find_elements(By.CSS_SELECTOR, prompt_selector)
-            if prompt_cards:
-                self.logger.info(f"📋 Found {len(prompt_cards)} prompt card(s)")
-                
-                # Take screenshot before selection
-                pre_selection_screenshot = self._take_screenshot("prompt_selection", "prompt_cards_available")
-                
-                self.logger.info("✅ Clicking default prompt (first option)...")
-                prompt_cards[0].click()
-                time.sleep(2)
-                
-                # Take screenshot after selection
-                post_selection_screenshot = self._take_screenshot("prompt_selection", "prompt_selected")
-                
-                self.logger.info("✅ Default prompt selected successfully")
-                
-                self.context.end_phase("prompt_selection", success=True)
-                self.context.outputs["prompt_selection"] = "SUCCESS"
-                
-                return True, "Default prompt selected"
-            else:
-                self.logger.error("⚠️ No prompt cards found")
-                error_screenshot = self._take_screenshot("prompt_selection", "no_prompts_found", is_error=True)
-                self.context.add_error("prompt_selection", "No prompt cards found", error_screenshot)
-                self.context.end_phase("prompt_selection", success=False)
-                return False, "No prompt cards found"
-                
-        except Exception as e:
-            self.logger.error(f"❌ Prompt selection failed: {e}")
-            error_screenshot = self._take_screenshot("prompt_selection", "selection_error", is_error=True)
-            self.context.add_error("prompt_selection", f"Prompt selection failed: {e}", error_screenshot)
-            self.context.end_phase("prompt_selection", success=False)
-            return False, f"Prompt selection failed: {e}"
-    
+
     def _take_screenshot(self, phase: str, description: str, is_error: bool = False) -> str:
         """
         Take screenshot and save with timestamp.
@@ -388,6 +210,135 @@ class SeleniumAutomationCore:
                 self.logger.warning(f"⚠️ Failed to take screenshot: {e}")
             return ""
     
+    def execute_authentication_phase(self) -> Tuple[bool, str]:
+        """
+        Complete Authentication Phase: Browser initialization + Login + Prompt selection
+        Combines the functionality of: initialize_browser, login, select_default_prompt
+        """
+        try:
+            # STEP 1: Initialize Browser - Setup logging FIRST
+            # Setup logging using existing function
+            self.logger, self.session_dir, self.attachments_dir, self.success_dir, self.error_dir = setup_logging()
+            
+            self.logger.info("🚀 Starting AUTHENTICATION PHASE - Step 1: Browser Initialization")
+            
+            # Load element selectors
+            try:
+                self.elements = load_elements()
+                self.logger.info("✅ Elements loaded successfully")
+            except Exception as e:
+                self.logger.warning(f"⚠️ Could not load elements.json: {e}")
+                self.elements = self._get_default_elements()
+            
+            # Initialize WebDriver
+            self.logger.info("🚀 Initializing Chrome WebDriver...")
+            options = webdriver.ChromeOptions()
+            options.add_argument('--start-maximized')
+            options.add_argument('--disable-blink-features=AutomationControlled')
+            options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            options.add_experimental_option('useAutomationExtension', False)
+            
+            self.driver = webdriver.Chrome(options=options)
+            self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            
+            # Set browser session info in context
+            session_id = self.driver.session_id
+            tab_handle = self.driver.current_window_handle
+            self.context.set_browser_session(session_id, tab_handle)
+            
+            self.logger.info("✅ Chrome WebDriver initialized")
+            
+            # STEP 2: Login
+            self.logger.info("🔐 Starting AUTHENTICATION PHASE - Step 2: Login")
+            self.context.start_phase("authentication")
+            
+            # Navigate to platform
+            self.logger.info(f"🌐 Navigating to {self.platform_url}...")
+            self.driver.get(self.platform_url)
+            
+            # Take screenshot of login page
+            self._take_screenshot("authentication", "login_page")
+            
+            self.logger.info("⏳ Waiting for login page to load...")
+            time.sleep(2)
+            
+            # Enter username
+            self.logger.info(f"👤 Entering username: {self.username}")
+            username_field = find_element_safe(self.driver, self.elements['login']['username_input'])
+            username_field.clear()
+            username_field.send_keys(self.username)
+            
+            # Enter password
+            self.logger.info("🔑 Entering password...")
+            password_field = find_element_safe(self.driver, self.elements['login']['password_input'])
+            password_field.clear()
+            password_field.send_keys(self.password)
+            
+            # Click login button
+            self.logger.info("🔓 Clicking login button...")
+            click_element_safe(self.driver, self.elements['login']['login_button'])
+            
+            # Wait for studio screen to load
+            self.logger.info("⏳ Waiting 3 seconds for studio screen to load...")
+            time.sleep(3)
+            
+            # Take screenshot after login
+            self._take_screenshot("authentication", "studio_loaded")
+            
+            # Verify login success
+            WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, self.elements['studio']['default_prompt']))
+            )
+            self.logger.info("✅ Login successful - Studio page loaded")
+            
+            # STEP 3: Select Default Prompt
+            self.logger.info("🎯 Starting AUTHENTICATION PHASE - Step 3: Select Default Prompt")
+            
+            self.logger.info("⏳ Waiting for studio page to load...")
+            time.sleep(3)
+            
+            prompt_selector = self.elements['studio']['default_prompt']
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, prompt_selector))
+            )
+            
+            prompt_cards = self.driver.find_elements(By.CSS_SELECTOR, prompt_selector)
+            if not prompt_cards:
+                return False, "No prompt cards found"
+            
+            self.logger.info(f"📋 Found {len(prompt_cards)} prompt card(s)")
+            
+            # Take screenshot before selection
+            self._take_screenshot("prompt_selection", "prompt_cards_available")
+            
+            self.logger.info("✅ Clicking default prompt (first option)...")
+            prompt_cards[0].click()
+            time.sleep(2)
+            
+            # Take screenshot after selection
+            self._take_screenshot("prompt_selection", "prompt_selected")
+            
+            self.logger.info("✅ Default prompt selected successfully")
+            
+            # Mark phase as complete
+            self.context.end_phase("authentication", success=True)
+            self.context.outputs["authentication"] = "SUCCESS"
+            
+            return True, "Authentication phase completed successfully - Browser initialized, logged in, and prompt selected"
+            
+        except Exception as e:
+            error_msg = f"Authentication phase failed: {e}"
+            # Safe logger usage - check if logger exists before using it
+            if hasattr(self, 'logger') and self.logger:
+                self.logger.error(error_msg)
+            else:
+                print(f"ERROR: {error_msg}")  # Fallback to print if logger not available
+            
+            if hasattr(self, 'context'):
+                self.context.add_error("authentication", error_msg)
+                self.context.end_phase("authentication", success=False)
+            return False, error_msg
+
     def cleanup(self):
         """Cleanup browser session"""
         try:

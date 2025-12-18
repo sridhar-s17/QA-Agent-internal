@@ -8,7 +8,7 @@
         1,
         2
       ],
-      "description": "Browser initialization, login, and prompt selection",
+      "description": "Complete authentication: browser initialization, login, and prompt selection",
       "message": "Proceed to requirements gathering?",
       "query": "Authenticate and setup browser session",
       "guided_step": "🔐 Phase 1: AUTHENTICATION & SETUP\nInitializing browser and logging into the platform...",
@@ -17,9 +17,7 @@
       "transition_prompt": "",
       "reads": [],
       "selenium_functions": [
-        "initialize_browser",
-        "login",
-        "select_default_prompt"
+        "execute_authentication_phase"
       ]
     },
     {
