@@ -1,0 +1,59 @@
+agent:
+  name: qa-agent
+  id: qa-automation
+  description: >
+    QA automation agent for testing app creation workflow
+    with intelligent validation and screenshot capture.
+
+strategy:
+  planning_mode: conservative
+  exploration_mode: sequential
+  memory_fallback_enabled: true
+  max_steps: 3
+  max_lifelines_per_step: 3
+
+llm:
+  text_generation: gemini
+  embedding: nomic
+
+persona:
+  tone: precise
+  verbosity: medium
+  behavior_tags: [analytical, thorough, validation-focused]
+
+# QA Phases mapping to UNO phases
+phases:
+  authentication: AuthenticationAgent
+  requirements: RequirementsGatheringAgent
+  discovery_validation: DiscoveryValidationAgent
+  wireframes_validation: WireframesValidationAgent
+  design_validation: DesignValidationAgent
+  build_process: BuildProcessAgent
+  test_validation: TestValidationAgent
+  preview_app: PreviewAppAgent
+  final_confirmation: FinalConfirmationAgent
+  default: AuthenticationAgent
+
+# Test Configuration
+test_config:
+  platform_url: "https://ft6.bifreedom.com"
+  username: "sridharofficial17@gmail.com"
+  password: "Pillir@111"
+  screenshot_on_document_open: true
+  results_storage: "local"  # no S3
+  session_tracking: true
+  
+# Pre-prompts for testing (from UNO profiles)
+pre_prompts:
+  - name: Vacation Request App
+    description: Test Vacation Request workflow automation
+    prompt: "Test the complete vacation request app creation process"
+    icon: "/icons/vacation-request.svg"
+  - name: Inspection Checklist Form
+    description: Test safety inspection app automation
+    prompt: "Test the complete inspection checklist app creation process"
+    icon: "/icons/inspection-checklist.svg"
+  - name: Inventory App
+    description: Test inventory management app automation
+    prompt: "Test the complete inventory app creation process"
+    icon: "/icons/inventory-check.svg"

@@ -1,0 +1,76 @@
+{
+  "authentication": {
+    "phase": "Discovery",
+    "description": "Browser initialization, login, and prompt selection",
+    "selenium_functions": [
+      "initialize_browser",
+      "login",
+      "select_default_prompt"
+    ],
+    "step_numbers": [1, 2]
+  },
+  "requirements": {
+    "phase": "Discovery",
+    "description": "Automatically answer all questions in the requirements phase",
+    "selenium_functions": [
+      "answer_all_questions"
+    ],
+    "step_numbers": [3]
+  },
+  "discovery": {
+    "phase": "Discovery", 
+    "description": "Open discovery document, take screenshot, validate and proceed",
+    "selenium_functions": [
+      "validate_discovery_document"
+    ],
+    "step_numbers": [4]
+  },
+  "wireframes": {
+    "phase": "Wireframe",
+    "description": "View wireframes, take screenshots, validate wireframe phase", 
+    "selenium_functions": [
+      "validate_wireframes"
+    ],
+    "step_numbers": [5, 6]
+  },
+  "design": {
+    "phase": "Specification",
+    "description": "View design document, take screenshots, validate design phase",
+    "selenium_functions": [
+      "validate_design_document"
+    ],
+    "step_numbers": [7, 8]
+  },
+  "build": {
+    "phase": "Build",
+    "description": "Monitor build process, wait for completion, confirm build",
+    "selenium_functions": [
+      "monitor_build_process"
+    ],
+    "step_numbers": [9, 10]
+  },
+  "test": {
+    "phase": "Test",
+    "description": "Open test document, take screenshot, validate test plan",
+    "selenium_functions": [
+      "validate_test_document"
+    ],
+    "step_numbers": [11]
+  },
+  "preview": {
+    "phase": "Test",
+    "description": "Open application preview, take screenshots, validate functionality",
+    "selenium_functions": [
+      "validate_app_preview"
+    ],
+    "step_numbers": [12, 13]
+  },
+  "final": {
+    "phase": "Deploy",
+    "description": "Final confirmation, QR code verification, complete workflow",
+    "selenium_functions": [
+      "final_confirmation"
+    ],
+    "step_numbers": [14]
+  }
+}

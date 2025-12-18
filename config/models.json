@@ -1,0 +1,18 @@
+{
+  "defaults": {
+    "text_generation": "gemini",
+    "embedding": "ollama"
+  },
+  "models": {
+    "gemini": {
+      "type": "gemini",
+      "model": "gemini-2.5-pro",
+      "api_key_env": "GEMINI_API_KEY"
+    },
+    "bedrock": {
+      "type": "bedrock",
+      "model": "us.anthropic.claude-sonnet-4-20250514-v1:0",
+      "api_key_env": "AWS_BEARER_TOKEN_BEDROCK"
+    }
+  }
+}

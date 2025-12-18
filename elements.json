@@ -1,0 +1,50 @@
+{
+  "login": {
+    "username_input": "input[data-input-testid='login_email']",
+    "password_input": "input[data-input-testid='login_password']",
+    "login_button": "button[data-clickable-testid='login_button']"
+  },
+  "studio": {
+    "default_prompt": "div[data-clickable-testid='quick_start_card_0']"
+  },
+  "questions": {
+    "radio_option": "[data-clickable-testid='current_radio_option_0']",
+    "checkbox_option": "[data-clickable-testid='current_checkbox_option_0']",
+    "selection_done_button": "[data-clickable-testid='checkbox_options_next_button']",
+    "selection_done_button_css": "button[style*='background: rgb(3, 98, 255)']",
+    "selection_done_button_xpath": "//button[contains(text(), 'Selection Done')]"
+  },
+  "document_flow": {
+    "decision_input": "textarea[data-input-testid='chat_prompt_input']",
+    "send_button": "svg[data-clickable-testid='send_message_button']",
+    "send_button_alt": "div[style*='cursor: pointer'][style*='overflow: hidden']"
+  },
+  "processing_alert": {
+    "alert_notification": "div[data-context-testid='chat_alert_notification']"
+  },
+  "wireframe": {
+    "wireframe_tile": "div.tile",
+    "wireframe_card": "div[data-clickable-testid='chat-message-Wireframe Document-card']",
+    "wireframe_image": "img.maximizer-wireframe-img",
+    "close_button": "svg[data-icon-testid='maximizer_close_icon']"
+  },
+  "design_document": {
+    "document_tile": "div.tile",
+    "document_card": "div[data-clickable-testid='chat-message-Discovery Document-card']",
+    "close_button": "svg[data-icon-testid='maximizer_close_icon']"
+  },
+  "test_document": {
+    "test_card": "div[data-clickable-testid='chat-message-Test Document-card']",
+    "close_button": "svg[data-icon-testid='maximizer_close_icon']"
+  },
+  "qr_code": {
+    "qr_container": "div[data-context-testid='chat_message_multiqr']"
+  },
+  "error_handling": {
+    "retry_button": "label[for*='retry']",
+    "retry_radio": "input[id*='retry']"
+  },
+  "preview": {
+    "close_button": "button[data-clickable-testid='preview_close_icon_btn']"
+  }
+}

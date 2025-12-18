@@ -1,0 +1,12 @@
+# QA Agent Dependencies - Minimal core dependencies only
+# Static graph approach - no LLM dependencies needed
+
+# Core automation
+selenium>=4.15.0
+python-dotenv>=1.0.0
+PyYAML>=6.0.0
+requests>=2.31.0
+
+# Utilities
+python-dateutil>=2.8.0
+colorama>=0.4.0
