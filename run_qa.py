@@ -23,19 +23,14 @@ async def main():
     print("  Step 2: Select default prompt")
     print("=" * 60)
     
-    # Get test name from user
-    test_name = input("Enter test name (or press Enter for auto-generated): ").strip()
-    if not test_name:
-        test_name = ""
-    
-    print(f"\n🚀 Starting QA test: {test_name or 'auto-generated'}")
+    print(f"\n🚀 Starting QA test with static graph")
     print("⚠️ Make sure Chrome browser is available and Studio_Automation folder is accessible")
     
     # Create and run client
     client = QAClient()
     
     try:
-        result = await client.run_qa_test(test_name, "authentication")        
+        result = await client.run_qa_test()        
         return result.get("success", False)
         
     except Exception as e:
