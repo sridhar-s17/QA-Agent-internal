@@ -210,7 +210,7 @@ class SeleniumAutomationCore:
                 self.logger.warning(f"⚠️ Failed to take screenshot: {e}")
             return ""
     
-    def execute_authentication_phase(self) -> Tuple[bool, str]:
+    def execute_authentication_phase(self,random_selection=True) -> Tuple[bool, str]:
         """
         Complete Authentication Phase: Browser initialization + Login + Prompt selection
         Combines the functionality of: initialize_browser, login, select_default_prompt
