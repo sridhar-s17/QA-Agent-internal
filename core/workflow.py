@@ -14,7 +14,8 @@ import os
 # Add project root to path for selenium module
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from selenium_automation.automation_core import SeleniumAutomationCore
-from core.graph import QAGraph, Node
+from core.graph import QAGraph
+from models.qa_models import QANode
 
 class QAWorkflow:
     """
@@ -25,17 +26,17 @@ class QAWorkflow:
     # QA Steps are now loaded from external JSON file (qa_steps.json)
     
     def __init__(self, context):
-        """
-        Initialize QA Workflow with graph-based execution.
-        
-        Args:
-            context: QA context for session management
-        """
+        """Initialize QA Workflow with static graph execution"""
         self.context = context
         self.selenium_core = SeleniumAutomationCore(context)
         
-        # Initialize graph
+        # Setup logging FIRST (before using self.logger)
+        self.logger = logging.getLogger(f"{__name__}.QAWorkflow")
+        
+        # Initialize static QA graph
+        self.logger.info("📋 Using static QA graph")
         self.graph = QAGraph()
+        
         self.nodes = {node.id: node for node in self.graph.nodes}
         self.edges = self._build_edges_dict()
         
@@ -44,9 +45,6 @@ class QAWorkflow:
         self.current_node_id = None
         self.executed_nodes = []
         self.failed_nodes = []
-        
-        # Setup logging
-        self.logger = logging.getLogger(f"{__name__}.QAWorkflow")
         
         # Save graph for debugging
         self.graph.save_to_file("qa_workflow_graph.json")
@@ -169,7 +167,7 @@ class QAWorkflow:
                 
                 # Get next nodes to execute based on response type
                 output_status = "SUCCESS" if response.get("type") == "success" else "FAILURE"
-                next_nodes = self._get_next_nodes(current_node_id, output_status)
+                next_nodes = self.graph.get_next_nodes(current_node_id, output_status)
                 
                 self.logger.info(f"🔗 Next nodes from {current_node_id} with status {output_status}: {[n.id for n in next_nodes]}")
                 ready_nodes.extend([node.id for node in next_nodes])
@@ -184,7 +182,7 @@ class QAWorkflow:
         
         return False  # No more nodes to execute but didn't reach end
     
-    async def _execute_node(self, node: Node) -> Dict[str, Any]:
+    async def _execute_node(self, node: QANode) -> Dict[str, Any]:
         """
         Execute a specific node using dynamic handler dispatch (UNO-MCP pattern).
         
@@ -216,33 +214,7 @@ class QAWorkflow:
                 "node": node.id
             }
     
-    def _get_next_nodes(self, current_node_id: str, output: str = "SUCCESS") -> List[Node]:
-        """
-        Get next nodes to execute based on current node output.
-        Similar to UNO's _get_next_nodes method.
-        
-        Args:
-            current_node_id: ID of current node
-            output: Output from current node execution
-            
-        Returns:
-            List[Node]: Next nodes to execute
-        """
-        next_nodes = []
-        
-        if current_node_id in self.edges:
-            for edge in self.edges[current_node_id]:
-                target_node_id = edge.target
-                edge_label = edge.label
-                
-                # If no label or label matches output, add to next nodes
-                if edge_label is None or edge_label == output:
-                    target_node = self.nodes.get(target_node_id)
-                    if target_node:
-                        next_nodes.append(target_node)
-        
-        return next_nodes
-    
+
     async def _cleanup_workflow(self):
         """Cleanup workflow resources"""
         try:
@@ -314,7 +286,7 @@ class QAWorkflow:
     
     # ==================== AGENT HANDLER METHODS (UNO-MCP Pattern) ====================
     
-    async def _handle_authentication(self, node: Node) -> Dict[str, Any]:
+    async def _handle_authentication(self, node: QANode) -> Dict[str, Any]:
         """
         Handles the 'AuthenticationAgent' node - Phase 1: AUTHENTICATION & SETUP
         Gets selenium functions from node and executes them directly
@@ -325,7 +297,7 @@ class QAWorkflow:
             # Update context
             self.context.current_phase = "authentication"
             
-            # Get selenium functions from node (future: LLM will generate these)
+            # Get selenium functions from node
             selenium_functions = getattr(node, 'selenium_functions', [])
             if not selenium_functions:
                 return self._create_failure_result("No selenium functions found in node", "Missing selenium_functions")
@@ -365,7 +337,7 @@ class QAWorkflow:
             self.logger.error(error_msg)
             return self._create_failure_result("Phase execution failed", error_msg)
     
-    async def _handle_requirementsgathering(self, node: Node) -> Dict[str, Any]:
+    async def _handle_requirementsgathering(self, node: QANode) -> Dict[str, Any]:
         """
         Handles the 'RequirementsGatheringAgent' node - Phase 2: REQUIREMENTS GATHERING
         Gets selenium functions from node and executes them directly
@@ -380,7 +352,7 @@ class QAWorkflow:
             # Update context
             self.context.current_phase = "requirements"
             
-            # Get selenium functions from node (future: LLM will generate these)
+            # Get selenium functions from node
             selenium_functions = getattr(node, 'selenium_functions', [])
             if not selenium_functions:
                 return self._create_failure_result("No selenium functions found in node", "Missing selenium_functions")
@@ -429,7 +401,7 @@ class QAWorkflow:
             self.logger.error(error_msg)
             return self._create_failure_result("Requirements phase failed", error_msg)
     
-    async def _handle_discoveryvalidation(self, node: Node) -> Dict[str, Any]:
+    async def _handle_discoveryvalidation(self, node: QANode) -> Dict[str, Any]:
         """
         Handles the 'DiscoveryValidationAgent' node - Phase 3: DISCOVERY DOCUMENT VALIDATION
         Gets selenium functions from node and executes them directly
@@ -475,7 +447,7 @@ class QAWorkflow:
             self.logger.error(error_msg)
             return self._create_failure_result("Discovery validation failed", error_msg)
     
-    async def _handle_wireframesvalidation(self, node: Node) -> Dict[str, Any]:
+    async def _handle_wireframesvalidation(self, node: QANode) -> Dict[str, Any]:
         """
         Handles the 'WireframesValidationAgent' node - Phase 4: WIREFRAMES VALIDATION
         Gets selenium functions from node and executes them directly
@@ -513,7 +485,7 @@ class QAWorkflow:
             self.logger.error(error_msg)
             return self._create_failure_result("Wireframes validation failed", error_msg)
     
-    async def _handle_designvalidation(self, node: Node) -> Dict[str, Any]:
+    async def _handle_designvalidation(self, node: QANode) -> Dict[str, Any]:
         """Handles the 'DesignValidationAgent' node - Gets selenium functions from node and executes them directly"""
         self.logger.info("📐 Starting DESIGN DOCUMENT VALIDATION phase")
         
@@ -540,7 +512,7 @@ class QAWorkflow:
         except Exception as e:
             return self._create_failure_result("Design validation failed", str(e))
     
-    async def _handle_buildprocess(self, node: Node) -> Dict[str, Any]:
+    async def _handle_buildprocess(self, node: QANode) -> Dict[str, Any]:
         """Handles the 'BuildProcessAgent' node - Gets selenium functions from node and executes them directly"""
         self.logger.info("🔨 Starting BUILD PROCESS phase")
         
@@ -567,7 +539,7 @@ class QAWorkflow:
         except Exception as e:
             return self._create_failure_result("Build process failed", str(e))
     
-    async def _handle_testvalidation(self, node: Node) -> Dict[str, Any]:
+    async def _handle_testvalidation(self, node: QANode) -> Dict[str, Any]:
         """Handles the 'TestValidationAgent' node - Gets selenium functions from node and executes them directly"""
         self.logger.info("🧪 Starting TEST PLAN VALIDATION phase")
         
@@ -594,7 +566,7 @@ class QAWorkflow:
         except Exception as e:
             return self._create_failure_result("Test validation failed", str(e))
     
-    async def _handle_previewapp(self, node: Node) -> Dict[str, Any]:
+    async def _handle_previewapp(self, node: QANode) -> Dict[str, Any]:
         """Handles the 'PreviewAppAgent' node - Gets selenium functions from node and executes them directly"""
         self.logger.info("👀 Starting PREVIEW APP phase")
         
@@ -621,7 +593,7 @@ class QAWorkflow:
         except Exception as e:
             return self._create_failure_result("Preview validation failed", str(e))
     
-    async def _handle_finalconfirmation(self, node: Node) -> Dict[str, Any]:
+    async def _handle_finalconfirmation(self, node: QANode) -> Dict[str, Any]:
         """Handles the 'FinalConfirmationAgent' node - Gets selenium functions from node and executes them directly"""
         self.logger.info("🎯 Starting FINAL CONFIRMATION phase")
         
@@ -648,7 +620,7 @@ class QAWorkflow:
         except Exception as e:
             return self._create_failure_result("Final confirmation failed", str(e))
     
-    async def _handle_end(self, node: Node) -> Dict[str, Any]:
+    async def _handle_end(self, node: QANode) -> Dict[str, Any]:
         """
         Handles the 'EndAgent' node - Workflow completion
         """
@@ -669,7 +641,7 @@ class QAWorkflow:
             "summary": summary
         }
     
-    async def _handle_default(self, node: Node) -> Dict[str, Any]:
+    async def _handle_default(self, node: QANode) -> Dict[str, Any]:
         """
         Default handler for unknown node types
         """
@@ -682,7 +654,7 @@ class QAWorkflow:
     
     async def _execute_selenium_function(self, function_name: str) -> Dict[str, Any]:
         """
-        Execute selenium function directly (prepares for LLM-generated function names)
+        Execute selenium function directly
         
         Args:
             function_name: Name of the selenium function to execute

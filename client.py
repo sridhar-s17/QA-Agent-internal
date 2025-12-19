@@ -1,6 +1,6 @@
 """
-QA Agent Client - Direct client for running QA automation workflow
-No FastAPI needed - direct execution approach
+QA Agent Client - Dynamic client using QAGraph and QAWorkflow capabilities
+Leverages existing graph methods instead of static mappings
 """
 
 import asyncio
@@ -10,7 +10,6 @@ from pathlib import Path
 import logging
 from typing import Dict, Any
 from datetime import datetime
-import json
 
 # Add project root to path
 project_root = Path(__file__).parent
@@ -25,14 +24,19 @@ load_dotenv()
 
 class QAClient:
     """
-    Direct client for executing QA automation workflow.
-    Provides a simple interface to run the complete test suite.
+    Dynamic client for executing QA automation workflow.
+    Uses existing QAGraph and QAWorkflow capabilities for flexible execution.
     """
     
     def __init__(self):
         """Initialize QA Client"""
         self.setup_logging()
         self.logger = logging.getLogger(f"{__name__}.QAClient")
+        
+        # Create a single workflow instance for graph operations
+        # This is lightweight since it only loads the graph structure
+        self._graph_context = QAContext("graph_operations")
+        self._workflow = QAWorkflow(self._graph_context)
         
     def setup_logging(self):
         """Setup console logging"""
@@ -44,76 +48,49 @@ class QAClient:
             ]
         )
     
-    async def run_qa_test(self, test_name: str = "", start_phase: str = "authentication") -> Dict[str, Any]:
-        """
-        Run QA automation test.
-        
-        Args:
-            test_name (str): Name for the test session
-            start_phase (str): Phase to start from (default: authentication)
-            
-        Returns:
-            Dict: Test execution results
-        """
+    async def run_qa_test(self) -> Dict[str, Any]:
+        """Run QA automation test with static graph"""
         self.logger.info("🚀 QA Agent Client Starting")
+        self.logger.info("📋 Static Graph Mode")
         self.logger.info("="*60)
         
         # Create test context
-        if not test_name:
-            test_name = f"qa_automation_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        
+        test_name = f"qa_automation_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         context = QAContext(test_name)
         self.logger.info(f"📋 Test Name: {test_name}")
         self.logger.info(f"🆔 Session ID: {context.session_id}")
         self.logger.info(f"📁 Results Directory: {context.results_dir}")
-        
         try:
-            # Create and execute workflow
-            workflow = QAWorkflow(context)
+            # Create workflow with static graph
+            workflow = QAWorkflow(context=context)
             
-            # Display workflow information
-            workflow_info = workflow.get_workflow_info()
-            self.logger.info(f"📊 Total Nodes: {workflow_info['total_nodes']}")
-            self.logger.info(f"🎯 Starting Phase: {start_phase}")
+            # Display graph info
+            graph_summary = workflow.graph.get_workflow_summary()
+            self.logger.info(f"📊 Static Graph: {graph_summary['total_nodes']} nodes, {graph_summary['total_edges']} edges")
             
-            # Execute workflow
-            self.logger.info("🔄 Starting workflow execution...")
-            
-            # Map phase names to node IDs
-            phase_to_node = {
-                "authentication": "authentication_1",
-                "requirements": "requirements_2", 
-                "discovery": "discovery_validation_3",
-                "wireframes": "wireframes_validation_4",
-                "design": "design_validation_5",
-                "build": "build_process_6",
-                "test": "test_validation_7",
-                "preview": "preview_app_8",
-                "final": "final_confirmation_9"
-            }
-            
-            start_node_id = phase_to_node.get(start_phase, start_phase)
+            # Get start node
+            start_node = workflow.graph.get_start_node()
+            start_node_id = start_node.id
             self.logger.info(f"🎯 Starting from node: {start_node_id}")
             
+            # Execute workflow - that's it!
+            self.logger.info("🔄 Starting workflow execution...")
             result = await workflow.execute_workflow(start_node_id)
             
             # Display results
             self._display_results(result)
-            
             return result
             
         except Exception as e:
             error_msg = f"QA test execution failed: {e}"
             self.logger.error(error_msg)
-            context.add_error("client", error_msg)
-            
-            return {
-                "success": False,
-                "message": error_msg,
-                "context_summary": context.get_test_summary()
-            }
+            return {"success": False, "message": error_msg}
     
-    def _display_results(self, result: Dict[str, any]):
+
+    
+
+    
+    def _display_results(self, result: Dict[str, Any]):
         """Display test results in a formatted way"""
         self.logger.info("="*60)
         self.logger.info("📊 QA TEST RESULTS")
@@ -130,19 +107,19 @@ class QAClient:
         self.logger.info(f"📝 Message: {message}")
         
         # Display execution details
-        executed_phases = result.get("executed_phases", [])
-        failed_phases = result.get("failed_phases", [])
-        total_phases = result.get("total_phases", 0)
+        executed_nodes = result.get("executed_nodes", [])
+        failed_nodes = result.get("failed_nodes", [])
+        total_nodes = result.get("total_nodes", 0)
         success_rate = result.get("success_rate", 0)
         
         self.logger.info(f"📈 Success Rate: {success_rate:.1f}%")
-        self.logger.info(f"✅ Completed Phases: {len(executed_phases)}/{total_phases}")
+        self.logger.info(f"✅ Completed Nodes: {len(executed_nodes)}/{total_nodes}")
         
-        if executed_phases:
-            self.logger.info(f"📋 Executed: {', '.join(executed_phases)}")
+        if executed_nodes:
+            self.logger.info(f"📋 Executed: {', '.join(executed_nodes)}")
         
-        if failed_phases:
-            self.logger.error(f"❌ Failed: {', '.join(failed_phases)}")
+        if failed_nodes:
+            self.logger.error(f"❌ Failed: {', '.join(failed_nodes)}")
         
         # Display timing information
         duration = result.get("duration_seconds", 0)
@@ -162,25 +139,19 @@ class QAClient:
         self.logger.info("="*60)
 
 def main():
-    """Main entry point for QA Client"""
+    """Main function for QA automation"""
     print("🤖 QA Agent - Automated Testing Framework")
-    print("=" * 50)
+    print("📋 Static Graph Execution")
+    print("=" * 60)
     
-    # Parse command line arguments (simple approach)
-    test_name = ""
-    start_phase = "authentication"
-    
-    if len(sys.argv) > 1:
-        test_name = sys.argv[1]
-    if len(sys.argv) > 2:
-        start_phase = sys.argv[2]
-    
-    # Create and run client
+    # Create client
     client = QAClient()
     
     try:
-        # Run the test
-        result = asyncio.run(client.run_qa_test(test_name, start_phase))
+        print(f"📋 Using static QA graph")
+        
+        # Run QA workflow
+        result = asyncio.run(client.run_qa_test())
         
         # Exit with appropriate code
         exit_code = 0 if result.get("success", False) else 1
