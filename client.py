@@ -1,6 +1,6 @@
 """
-QA Agent Client - Direct client for running QA automation workflow
-No FastAPI needed - direct execution approach
+QA Agent Client - Dynamic client using QAGraph and QAWorkflow capabilities
+Leverages existing graph methods instead of static mappings
 """
 
 import asyncio
@@ -10,7 +10,6 @@ from pathlib import Path
 import logging
 from typing import Dict, Any
 from datetime import datetime
-import json
 
 # Add project root to path
 project_root = Path(__file__).parent
@@ -25,14 +24,19 @@ load_dotenv()
 
 class QAClient:
     """
-    Direct client for executing QA automation workflow.
-    Provides a simple interface to run the complete test suite.
+    Dynamic client for executing QA automation workflow.
+    Uses existing QAGraph and QAWorkflow capabilities for flexible execution.
     """
     
     def __init__(self):
         """Initialize QA Client"""
         self.setup_logging()
         self.logger = logging.getLogger(f"{__name__}.QAClient")
+        
+        # Create a single workflow instance for graph operations
+        # This is lightweight since it only loads the graph structure
+        self._graph_context = QAContext("graph_operations")
+        self._workflow = QAWorkflow(self._graph_context)
         
     def setup_logging(self):
         """Setup console logging"""
@@ -69,44 +73,24 @@ class QAClient:
             start_node_id = start_node.id
             self.logger.info(f"🎯 Starting from node: {start_node_id}")
             
-            # Execute workflow
+            # Execute workflow - that's it!
             self.logger.info("🔄 Starting workflow execution...")
-            
-            # Map phase names to node IDs
-            phase_to_node = {
-                "authentication": "authentication_1",
-                "requirements": "requirements_2", 
-                "discovery": "discovery_validation_3",
-                "wireframes": "wireframes_validation_4",
-                "design": "design_validation_5",
-                "build": "build_process_6",
-                "test": "test_validation_7",
-                "preview": "preview_app_8",
-                "final": "final_confirmation_9"
-            }
-            
-            start_node_id = phase_to_node.get(start_phase, start_phase)
-            self.logger.info(f"🎯 Starting from node: {start_node_id}")
-            
             result = await workflow.execute_workflow(start_node_id)
             
             # Display results
             self._display_results(result)
-            
             return result
             
         except Exception as e:
             error_msg = f"QA test execution failed: {e}"
             self.logger.error(error_msg)
-            context.add_error("client", error_msg)
-            
-            return {
-                "success": False,
-                "message": error_msg,
-                "context_summary": context.get_test_summary()
-            }
+            return {"success": False, "message": error_msg}
     
-    def _display_results(self, result: Dict[str, any]):
+
+    
+
+    
+    def _display_results(self, result: Dict[str, Any]):
         """Display test results in a formatted way"""
         self.logger.info("="*60)
         self.logger.info("📊 QA TEST RESULTS")
@@ -123,19 +107,19 @@ class QAClient:
         self.logger.info(f"📝 Message: {message}")
         
         # Display execution details
-        executed_phases = result.get("executed_phases", [])
-        failed_phases = result.get("failed_phases", [])
-        total_phases = result.get("total_phases", 0)
+        executed_nodes = result.get("executed_nodes", [])
+        failed_nodes = result.get("failed_nodes", [])
+        total_nodes = result.get("total_nodes", 0)
         success_rate = result.get("success_rate", 0)
         
         self.logger.info(f"📈 Success Rate: {success_rate:.1f}%")
-        self.logger.info(f"✅ Completed Phases: {len(executed_phases)}/{total_phases}")
+        self.logger.info(f"✅ Completed Nodes: {len(executed_nodes)}/{total_nodes}")
         
-        if executed_phases:
-            self.logger.info(f"📋 Executed: {', '.join(executed_phases)}")
+        if executed_nodes:
+            self.logger.info(f"📋 Executed: {', '.join(executed_nodes)}")
         
-        if failed_phases:
-            self.logger.error(f"❌ Failed: {', '.join(failed_phases)}")
+        if failed_nodes:
+            self.logger.error(f"❌ Failed: {', '.join(failed_nodes)}")
         
         # Display timing information
         duration = result.get("duration_seconds", 0)

@@ -5,7 +5,8 @@
     "login_button": "button[data-clickable-testid='login_button']"
   },
   "studio": {
-    "default_prompt": "div[data-clickable-testid='quick_start_card_0']"
+    "default_prompt": "div[data-clickable-testid='quick_start_card_0']",
+    "all_prompt_cards": "div[data-clickable-testid^='quick_start_card_']"
   },
   "questions": {
     "radio_option": "[data-clickable-testid='current_radio_option_0']",

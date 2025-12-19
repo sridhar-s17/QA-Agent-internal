@@ -167,7 +167,7 @@ class QAWorkflow:
                 
                 # Get next nodes to execute based on response type
                 output_status = "SUCCESS" if response.get("type") == "success" else "FAILURE"
-                next_nodes = self._get_next_nodes(current_node_id, output_status)
+                next_nodes = self.graph.get_next_nodes(current_node_id, output_status)
                 
                 self.logger.info(f"🔗 Next nodes from {current_node_id} with status {output_status}: {[n.id for n in next_nodes]}")
                 ready_nodes.extend([node.id for node in next_nodes])
@@ -214,33 +214,7 @@ class QAWorkflow:
                 "node": node.id
             }
     
-    def _get_next_nodes(self, current_node_id: str, output: str = "SUCCESS") -> List[QANode]:
-        """
-        Get next nodes to execute based on current node output.
-        Similar to UNO's _get_next_nodes method.
-        
-        Args:
-            current_node_id: ID of current node
-            output: Output from current node execution
-            
-        Returns:
-            List[Node]: Next nodes to execute
-        """
-        next_nodes = []
-        
-        if current_node_id in self.edges:
-            for edge in self.edges[current_node_id]:
-                target_node_id = edge.target
-                edge_label = edge.label
-                
-                # If no label or label matches output, add to next nodes
-                if edge_label is None or edge_label == output:
-                    target_node = self.nodes.get(target_node_id)
-                    if target_node:
-                        next_nodes.append(target_node)
-        
-        return next_nodes
-    
+
     async def _cleanup_workflow(self):
         """Cleanup workflow resources"""
         try:
