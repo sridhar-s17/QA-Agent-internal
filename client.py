@@ -48,35 +48,30 @@ class QAClient:
             ]
         )
     
-    async def run_qa_test(self, test_name: str = "", start_phase: str = None) -> Dict[str, Any]:
-        """
-        Run QA automation test - Simple and direct approach.
-        
-        Args:
-            test_name (str): Name for the test session
-            start_phase (str): Phase to start from (uses graph.get_start_node() if None)
-            
-        Returns:
-            Dict: Test execution results
-        """
+    async def run_qa_test(self) -> Dict[str, Any]:
+        """Run QA automation test with static graph"""
         self.logger.info("🚀 QA Agent Client Starting")
+        self.logger.info("📋 Static Graph Mode")
         self.logger.info("="*60)
         
         # Create test context
-        if not test_name:
-            test_name = f"qa_automation_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        
+        test_name = f"qa_automation_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         context = QAContext(test_name)
         self.logger.info(f"📋 Test Name: {test_name}")
         self.logger.info(f"🆔 Session ID: {context.session_id}")
-        self.logger.info(f"� Ressults Directory: {context.results_dir}")
-        
+        self.logger.info(f"📁 Results Directory: {context.results_dir}")
         try:
-            # Create workflow
-            workflow = QAWorkflow(context)
+            # Create workflow with static graph
+            workflow = QAWorkflow(context=context)
+            
+            # Display graph info
+            graph_summary = workflow.graph.get_workflow_summary()
+            self.logger.info(f"📊 Static Graph: {graph_summary['total_nodes']} nodes, {graph_summary['total_edges']} edges")
+            
+            # Get start node
             start_node = workflow.graph.get_start_node()
             start_node_id = start_node.id
-            self.logger.info(f"🎯 Starting from default node: {start_node_id}")
+            self.logger.info(f"🎯 Starting from node: {start_node_id}")
             
             # Execute workflow - that's it!
             self.logger.info("🔄 Starting workflow execution...")
@@ -144,15 +139,18 @@ class QAClient:
         self.logger.info("="*60)
 
 def main():
-    """Simple main function - just run the QA test"""
+    """Main function for QA automation"""
     print("🤖 QA Agent - Automated Testing Framework")
-    print("=" * 50)
+    print("📋 Static Graph Execution")
+    print("=" * 60)
     
     # Create client
     client = QAClient()
     
     try:
-        # Run full QA workflow - simple!
+        print(f"📋 Using static QA graph")
+        
+        # Run QA workflow
         result = asyncio.run(client.run_qa_test())
         
         # Exit with appropriate code

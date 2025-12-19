@@ -4,265 +4,212 @@
       "id": "authentication_1",
       "type": "AuthenticationAgent",
       "phase": "Discovery",
-      "steps": [
-        1,
-        2
-      ],
-      "description": "Complete authentication: browser initialization, login, and prompt selection",
-      "message": "Proceed to requirements gathering?",
-      "query": "Authenticate and setup browser session",
-      "guided_step": "🔐 Phase 1: AUTHENTICATION & SETUP\nInitializing browser and logging into the platform...",
-      "guided_step_complete": "✅ Authentication completed successfully. Browser ready for testing.",
-      "introduction": "Starting QA automation with authentication and setup phase.",
-      "transition_prompt": "",
       "reads": [],
       "selenium_functions": [
         "execute_authentication_phase"
-      ]
+      ],
+      "document_interaction": false,
+      "validation_type": null,
+      "introduction": null,
+      "guided_step": null,
+      "guided_step_complete": null
     },
     {
       "id": "requirements_2",
       "type": "RequirementsGatheringAgent",
       "phase": "Discovery",
-      "steps": [
-        3
-      ],
-      "description": "Automatically answer all questions in the requirements phase",
-      "message": "",
-      "query": "Answer all questions automatically",
-      "guided_step": "📋 Phase 2: REQUIREMENTS GATHERING\nAutomatically answering all questions...",
-      "guided_step_complete": "✅ All questions answered successfully. Requirements gathered.",
-      "introduction": "",
-      "transition_prompt": "",
       "reads": [
         "authentication_1"
       ],
       "selenium_functions": [
         "answer_all_questions"
-      ]
+      ],
+      "document_interaction": false,
+      "validation_type": null,
+      "introduction": null,
+      "guided_step": null,
+      "guided_step_complete": null
     },
     {
       "id": "discovery_validation_3",
       "type": "DiscoveryValidationAgent",
       "phase": "Discovery",
-      "steps": [
-        4
-      ],
-      "description": "Open discovery document, take screenshot, validate and proceed",
-      "message": "",
-      "query": "Validate discovery document",
-      "guided_step": "📄 Phase 3: DISCOVERY DOCUMENT VALIDATION\nOpening and validating discovery document...",
-      "guided_step_complete": "✅ Discovery document validated successfully.",
-      "introduction": "",
-      "transition_prompt": "",
       "reads": [
         "requirements_2"
       ],
       "selenium_functions": [
         "validate_discovery_document"
-      ]
+      ],
+      "document_interaction": false,
+      "validation_type": null,
+      "introduction": null,
+      "guided_step": null,
+      "guided_step_complete": null
     },
     {
       "id": "wireframes_validation_4",
       "type": "WireframesValidationAgent",
       "phase": "Wireframe",
-      "steps": [
-        5,
-        6
-      ],
-      "description": "View wireframes, take screenshots, validate wireframe phase",
-      "message": "",
-      "query": "Validate wireframes and UI mockups",
-      "guided_step": "🎨 Phase 4: WIREFRAMES VALIDATION\nViewing and validating wireframes...",
-      "guided_step_complete": "✅ Wireframes validated successfully.",
-      "introduction": "",
-      "transition_prompt": "",
       "reads": [
         "discovery_validation_3"
       ],
       "selenium_functions": [
         "validate_wireframes"
-      ]
+      ],
+      "document_interaction": false,
+      "validation_type": null,
+      "introduction": null,
+      "guided_step": null,
+      "guided_step_complete": null
     },
     {
       "id": "design_validation_5",
       "type": "DesignValidationAgent",
       "phase": "Specification",
-      "steps": [
-        7,
-        8
-      ],
-      "description": "View design document, take screenshots, validate design phase",
-      "message": "",
-      "query": "Validate design document and specifications",
-      "guided_step": "📐 Phase 5: DESIGN DOCUMENT VALIDATION\nViewing and validating design document...",
-      "guided_step_complete": "✅ Design document validated successfully.",
-      "introduction": "",
-      "transition_prompt": "",
       "reads": [
         "wireframes_validation_4"
       ],
       "selenium_functions": [
         "validate_design_document"
-      ]
+      ],
+      "document_interaction": false,
+      "validation_type": null,
+      "introduction": null,
+      "guided_step": null,
+      "guided_step_complete": null
     },
     {
       "id": "build_process_6",
       "type": "BuildProcessAgent",
       "phase": "Build",
-      "steps": [
-        9,
-        10
-      ],
-      "description": "Monitor build process, wait for completion, confirm build",
-      "message": "",
-      "query": "Monitor and validate build process",
-      "guided_step": "🔨 Phase 6: BUILD PROCESS\nMonitoring application build process...",
-      "guided_step_complete": "✅ Build process completed successfully.",
-      "introduction": "",
-      "transition_prompt": "",
       "reads": [
         "design_validation_5"
       ],
       "selenium_functions": [
         "monitor_build_process"
-      ]
+      ],
+      "document_interaction": false,
+      "validation_type": null,
+      "introduction": null,
+      "guided_step": null,
+      "guided_step_complete": null
     },
     {
       "id": "test_validation_7",
       "type": "TestValidationAgent",
       "phase": "Test",
-      "steps": [
-        11
-      ],
-      "description": "Open test document, take screenshot, validate test plan",
-      "message": "",
-      "query": "Validate test plan and testing approach",
-      "guided_step": "🧪 Phase 7: TEST PLAN VALIDATION\nOpening and validating test document...",
-      "guided_step_complete": "✅ Test plan validated successfully.",
-      "introduction": "",
-      "transition_prompt": "",
       "reads": [
         "build_process_6"
       ],
       "selenium_functions": [
         "validate_test_document"
-      ]
+      ],
+      "document_interaction": false,
+      "validation_type": null,
+      "introduction": null,
+      "guided_step": null,
+      "guided_step_complete": null
     },
     {
       "id": "preview_app_8",
       "type": "PreviewAppAgent",
       "phase": "Test",
-      "steps": [
-        12,
-        13
-      ],
-      "description": "Open application preview, take screenshots, validate functionality",
-      "message": "",
-      "query": "Preview and validate application functionality",
-      "guided_step": "👀 Phase 8: PREVIEW APP\nOpening application preview...",
-      "guided_step_complete": "✅ Application preview validated successfully.",
-      "introduction": "",
-      "transition_prompt": "Application preview completed. Ready for final confirmation?",
       "reads": [
         "test_validation_7"
       ],
       "selenium_functions": [
         "validate_app_preview"
-      ]
+      ],
+      "document_interaction": false,
+      "validation_type": null,
+      "introduction": null,
+      "guided_step": null,
+      "guided_step_complete": null
     },
     {
       "id": "final_confirmation_9",
       "type": "FinalConfirmationAgent",
       "phase": "Deploy",
-      "steps": [
-        14
-      ],
-      "description": "Final confirmation, QR code verification, complete workflow",
-      "message": "",
-      "query": "Perform final confirmation and verify deployment",
-      "guided_step": "🎯 Phase 9: FINAL CONFIRMATION\nPerforming final confirmation and QR code verification...",
-      "guided_step_complete": "✅ QA automation workflow completed successfully!",
-      "introduction": "",
-      "transition_prompt": "",
       "reads": [
         "preview_app_8"
       ],
       "selenium_functions": [
         "final_confirmation"
-      ]
+      ],
+      "document_interaction": false,
+      "validation_type": null,
+      "introduction": null,
+      "guided_step": null,
+      "guided_step_complete": null
     },
     {
       "id": "end_workflow",
       "type": "EndAgent",
       "phase": "Deploy",
-      "steps": [],
-      "description": "QA workflow completed successfully",
-      "message": "🎉 QA Automation completed! All phases validated successfully.",
-      "query": "",
-      "guided_step": "",
-      "guided_step_complete": "",
-      "introduction": "",
-      "transition_prompt": "",
       "reads": [
         "final_confirmation_9"
       ],
-      "selenium_functions": []
+      "selenium_functions": [],
+      "document_interaction": false,
+      "validation_type": null,
+      "introduction": null,
+      "guided_step": null,
+      "guided_step_complete": null
     }
   ],
   "edges": [
     {
       "source": "authentication_1",
       "target": "requirements_2",
-      "label": "SUCCESS",
+      "label": null,
       "condition": null
     },
     {
       "source": "requirements_2",
       "target": "discovery_validation_3",
-      "label": "SUCCESS",
+      "label": null,
       "condition": null
     },
     {
       "source": "discovery_validation_3",
       "target": "wireframes_validation_4",
-      "label": "SUCCESS",
+      "label": null,
       "condition": null
     },
     {
       "source": "wireframes_validation_4",
       "target": "design_validation_5",
-      "label": "SUCCESS",
+      "label": null,
       "condition": null
     },
     {
       "source": "design_validation_5",
       "target": "build_process_6",
-      "label": "SUCCESS",
+      "label": null,
       "condition": null
     },
     {
       "source": "build_process_6",
       "target": "test_validation_7",
-      "label": "SUCCESS",
+      "label": null,
       "condition": null
     },
     {
       "source": "test_validation_7",
       "target": "preview_app_8",
-      "label": "SUCCESS",
+      "label": null,
       "condition": null
     },
     {
       "source": "preview_app_8",
       "target": "final_confirmation_9",
-      "label": "SUCCESS",
+      "label": null,
       "condition": null
     },
     {
       "source": "final_confirmation_9",
       "target": "end_workflow",
-      "label": "SUCCESS",
+      "label": null,
       "condition": null
     }
   ]

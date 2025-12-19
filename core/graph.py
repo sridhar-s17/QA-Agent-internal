@@ -1,14 +1,17 @@
 """
 QA Graph - Static workflow graph for QA automation
-Since QA flow is always the same (14 steps, 9 phases), we use a static graph
-instead of LLM generation like UNO-MCP.
-Steps are loaded from external JSON file to prepare for future LLM generation.
+Uses Pydantic models for consistency and validation.
 """
 
 from typing import List, Dict, Any, Optional
 import json
 import os
 from enum import Enum
+import sys
+
+# Import Pydantic models
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from models.qa_models import QANode, QAEdge
 
 class NodeType(Enum):
     """Node types for QA workflow"""
@@ -21,50 +24,16 @@ class NodeType(Enum):
     TEST_VALIDATION = "TestValidationAgent"
     PREVIEW_APP = "PreviewAppAgent"
     FINAL_CONFIRMATION = "FinalConfirmationAgent"
-    CONFIRMATION = "ConfirmationAgent"
     END = "EndAgent"
 
-# Simple wrapper classes for compatibility
-class Node:
-    """Node class for QA workflow graph"""
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-        
-        # No default values - JSON file is single source of truth
-        # But ensure attributes exist to prevent AttributeError
-        for attr in ['reads', 'message', 'query', 'guided_step', 'guided_step_complete', 
-                     'introduction', 'transition_prompt', 'selenium_functions']:
-            if not hasattr(self, attr):
-                setattr(self, attr, [] if attr in ['reads', 'selenium_functions'] else "")
-
-class Edge:
-    """Legacy Edge class for backward compatibility"""
-    def __init__(self, source: str, target: str, label: Optional[str] = None, condition: Optional[str] = None):
-        self.source = source
-        self.target = target
-        self.label = label
-        self.condition = condition
-
 class QAGraph:
-    """
-    Static QA workflow graph - always the same 14 steps, 9 phases.
-    No LLM generation needed since QA flow is consistent.
-    """
+    """QA workflow graph using Pydantic models"""
     
     def __init__(self):
-        """Initialize static QA graph"""
-        self.nodes = []
-        self.edges = []
-        self.guided_journey = ""
-        self.test_objective = "QA Automation for App Creation Process"
-        self.expected_duration = "5-10 minutes"
-        self.automation_scope = "Full app creation workflow validation"
-        
-        # Load steps configuration from JSON file
+        """Initialize QA graph with static workflow"""
+        self.nodes: List[QANode] = []
+        self.edges: List[QAEdge] = []
         self.steps_config = self._load_steps_config()
-        
-        # Build the static graph
         self._build_qa_graph()
     
     def _load_steps_config(self) -> Dict[str, Any]:
@@ -78,152 +47,101 @@ class QAGraph:
         
         # Phase 1: AUTHENTICATION & SETUP
         auth_config = self.steps_config["authentication"]
-        auth_node = Node(
+        auth_node = QANode(
             id="authentication_1",
             type=NodeType.AUTHENTICATION.value,
             phase=auth_config["phase"],
-            steps=auth_config["step_numbers"],
-            selenium_functions=auth_config["selenium_functions"],
-            description=auth_config["description"],
-            guided_step="🔐 Phase 1: AUTHENTICATION & SETUP\nInitializing browser and logging into the platform...",
-            guided_step_complete="✅ Authentication completed successfully. Browser ready for testing.",
-            introduction="Starting QA automation with authentication and setup phase.",
-            message="Proceed to requirements gathering?",
-            query="Authenticate and setup browser session"
+            reads=[],  # Start node has no dependencies
+            selenium_functions=auth_config["selenium_functions"] # Get first selenium function
         )
         
         # Phase 2: REQUIREMENTS GATHERING  
         requirements_config = self.steps_config["requirements"]
-        requirements_node = Node(
+        requirements_node = QANode(
             id="requirements_2",
             type=NodeType.REQUIREMENTS_GATHERING.value,
-            phase=requirements_config["phase"], 
-            steps=requirements_config["step_numbers"],
-            selenium_functions=requirements_config["selenium_functions"],
-            description=requirements_config["description"],
-            guided_step="📋 Phase 2: REQUIREMENTS GATHERING\nAutomatically answering all questions...",
-            guided_step_complete="✅ All questions answered successfully. Requirements gathered.",
+            phase=requirements_config["phase"],
             reads=["authentication_1"],
-            query="Answer all questions automatically"
+            selenium_functions=requirements_config["selenium_functions"]
         )
-        
-
         
         # Phase 3: DISCOVERY DOCUMENT VALIDATION
         discovery_config = self.steps_config["discovery"]
-        discovery_validation_node = Node(
+        discovery_validation_node = QANode(
             id="discovery_validation_3",
             type=NodeType.DISCOVERY_VALIDATION.value,
             phase=discovery_config["phase"],
-            steps=discovery_config["step_numbers"],
-            selenium_functions=discovery_config["selenium_functions"],
-            description=discovery_config["description"],
-            guided_step="📄 Phase 3: DISCOVERY DOCUMENT VALIDATION\nOpening and validating discovery document...",
-            guided_step_complete="✅ Discovery document validated successfully.",
             reads=["requirements_2"],
-            query="Validate discovery document"
+            selenium_functions=discovery_config["selenium_functions"]
         )
         
         # Phase 4: WIREFRAMES VALIDATION
         wireframes_config = self.steps_config["wireframes"]
-        wireframes_validation_node = Node(
+        wireframes_validation_node = QANode(
             id="wireframes_validation_4",
             type=NodeType.WIREFRAMES_VALIDATION.value,
             phase=wireframes_config["phase"],
-            steps=wireframes_config["step_numbers"],
-            selenium_functions=wireframes_config["selenium_functions"],
-            description=wireframes_config["description"],
-            guided_step="🎨 Phase 4: WIREFRAMES VALIDATION\nViewing and validating wireframes...",
-            guided_step_complete="✅ Wireframes validated successfully.",
             reads=["discovery_validation_3"],
-            query="Validate wireframes and UI mockups"
+            selenium_functions=wireframes_config["selenium_functions"]
         )
         
         # Phase 5: DESIGN DOCUMENT VALIDATION
         design_config = self.steps_config["design"]
-        design_validation_node = Node(
+        design_validation_node = QANode(
             id="design_validation_5", 
             type=NodeType.DESIGN_VALIDATION.value,
             phase=design_config["phase"],
-            steps=design_config["step_numbers"],
-            selenium_functions=design_config["selenium_functions"],
-            description=design_config["description"],
-            guided_step="📐 Phase 5: DESIGN DOCUMENT VALIDATION\nViewing and validating design document...",
-            guided_step_complete="✅ Design document validated successfully.",
             reads=["wireframes_validation_4"],
-            query="Validate design document and specifications"
+            selenium_functions=design_config["selenium_functions"]
         )
         
         # Phase 6: BUILD PROCESS
         build_config = self.steps_config["build"]
-        build_process_node = Node(
+        build_process_node = QANode(
             id="build_process_6",
             type=NodeType.BUILD_PROCESS.value,
             phase=build_config["phase"],
-            steps=build_config["step_numbers"],
-            selenium_functions=build_config["selenium_functions"],
-            description=build_config["description"],
-            guided_step="🔨 Phase 6: BUILD PROCESS\nMonitoring application build process...",
-            guided_step_complete="✅ Build process completed successfully.",
             reads=["design_validation_5"],
-            query="Monitor and validate build process"
+            selenium_functions=build_config["selenium_functions"]
         )
         
         # Phase 7: TEST PLAN VALIDATION
         test_config = self.steps_config["test"]
-        test_validation_node = Node(
+        test_validation_node = QANode(
             id="test_validation_7",
             type=NodeType.TEST_VALIDATION.value,
             phase=test_config["phase"],
-            steps=test_config["step_numbers"],
-            selenium_functions=test_config["selenium_functions"],
-            description=test_config["description"],
-            guided_step="🧪 Phase 7: TEST PLAN VALIDATION\nOpening and validating test document...",
-            guided_step_complete="✅ Test plan validated successfully.",
             reads=["build_process_6"],
-            query="Validate test plan and testing approach"
+            selenium_functions=test_config["selenium_functions"]
         )
         
         # Phase 8: PREVIEW APP
         preview_config = self.steps_config["preview"]
-        preview_app_node = Node(
+        preview_app_node = QANode(
             id="preview_app_8",
             type=NodeType.PREVIEW_APP.value,
             phase=preview_config["phase"],
-            steps=preview_config["step_numbers"],
-            selenium_functions=preview_config["selenium_functions"],
-            description=preview_config["description"],
-            guided_step="👀 Phase 8: PREVIEW APP\nOpening application preview...",
-            guided_step_complete="✅ Application preview validated successfully.",
             reads=["test_validation_7"],
-            query="Preview and validate application functionality",
-            transition_prompt="Application preview completed. Ready for final confirmation?"
+            selenium_functions=preview_config["selenium_functions"]
         )
         
         # Phase 9: FINAL CONFIRMATION
         final_config = self.steps_config["final"]
-        final_confirmation_node = Node(
+        final_confirmation_node = QANode(
             id="final_confirmation_9",
             type=NodeType.FINAL_CONFIRMATION.value,
             phase=final_config["phase"],
-            steps=final_config["step_numbers"],
-            selenium_functions=final_config["selenium_functions"],
-            description=final_config["description"],
-            guided_step="🎯 Phase 9: FINAL CONFIRMATION\nPerforming final confirmation and QR code verification...",
-            guided_step_complete="✅ QA automation workflow completed successfully!",
             reads=["preview_app_8"],
-            query="Perform final confirmation and verify deployment"
+            selenium_functions=final_config["selenium_functions"]
         )
         
-        # End node
-        end_node = Node(
+        # End node (no selenium function needed)
+        end_node = QANode(
             id="end_workflow",
             type=NodeType.END.value,
             phase="Deploy",
-            steps=[],
-            description="QA workflow completed successfully",
-            message="🎉 QA Automation completed! All phases validated successfully.",
             reads=["final_confirmation_9"]
+            # No selenium_function for end node
         )
         
         # Add all nodes
@@ -239,22 +157,22 @@ class QAGraph:
             final_confirmation_node,
             end_node
         ]
-        
-        # Define edges (workflow flow) - Clean linear flow only
+        print(self.nodes)
+        # Define edges (workflow flow)
         self.edges = [
-            # Linear success flow
-            Edge("authentication_1", "requirements_2", "SUCCESS"),
-            Edge("requirements_2", "discovery_validation_3", "SUCCESS"),
-            Edge("discovery_validation_3", "wireframes_validation_4", "SUCCESS"),
-            Edge("wireframes_validation_4", "design_validation_5", "SUCCESS"),
-            Edge("design_validation_5", "build_process_6", "SUCCESS"),
-            Edge("build_process_6", "test_validation_7", "SUCCESS"),
-            Edge("test_validation_7", "preview_app_8", "SUCCESS"),
-            Edge("preview_app_8", "final_confirmation_9", "SUCCESS"),
-            Edge("final_confirmation_9", "end_workflow", "SUCCESS"),
+            # Linear success flow using QAEdge (Pydantic model)
+            QAEdge(source="authentication_1", target="requirements_2"),
+            QAEdge(source="requirements_2", target="discovery_validation_3"),
+            QAEdge(source="discovery_validation_3", target="wireframes_validation_4"),
+            QAEdge(source="wireframes_validation_4", target="design_validation_5"),
+            QAEdge(source="design_validation_5", target="build_process_6"),
+            QAEdge(source="build_process_6", target="test_validation_7"),
+            QAEdge(source="test_validation_7", target="preview_app_8"),
+            QAEdge(source="preview_app_8", target="final_confirmation_9"),
+            QAEdge(source="final_confirmation_9", target="end_workflow"),
         ]
     
-    def get_start_node(self) -> Optional[Node]:
+    def get_start_node(self) -> Optional[QANode]:
         """Get the starting node of the workflow"""
         # Find node with no incoming edges
         target_ids = {edge.target for edge in self.edges}
@@ -263,7 +181,7 @@ class QAGraph:
                 return node
         return None
     
-    def get_next_nodes(self, current_node_id: str, output: str = "SUCCESS") -> List[Node]:
+    def get_next_nodes(self, current_node_id: str, output: str = "SUCCESS") -> List[QANode]:
         """Get next nodes based on current node output"""
         next_node_ids = []
         
@@ -276,57 +194,29 @@ class QAGraph:
         # Return corresponding nodes
         return [node for node in self.nodes if node.id in next_node_ids]
     
-    def get_node_by_id(self, node_id: str) -> Optional[Node]:
+    def get_node_by_id(self, node_id: str) -> Optional[QANode]:
         """Get node by ID"""
         for node in self.nodes:
             if node.id == node_id:
                 return node
         return None
     
-    def get_nodes_by_phase(self, phase: str) -> List[Node]:
+    def get_nodes_by_phase(self, phase: str) -> List[QANode]:
         """Get all nodes for a specific phase"""
         return [node for node in self.nodes if node.phase == phase]
     
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert graph to dictionary representation"""
-        return {
-            "nodes": [
-                {
-                    "id": node.id,
-                    "type": node.type,
-                    "phase": node.phase,
-                    "steps": node.steps,
-                    "description": node.description,
-                    "message": node.message,
-                    "query": node.query,
-                    "guided_step": node.guided_step,
-                    "guided_step_complete": node.guided_step_complete,
-                    "introduction": node.introduction,
-                    "transition_prompt": node.transition_prompt,
-                    "reads": node.reads,
-                    "selenium_functions": getattr(node, 'selenium_functions', [])
-                }
-                for node in self.nodes
-            ],
-            "edges": [
-                {
-                    "source": edge.source,
-                    "target": edge.target,
-                    "label": edge.label,
-                    "condition": edge.condition
-                }
-                for edge in self.edges
-            ]
-        }
-    
     def save_to_file(self, filepath: str):
-        """Save graph to JSON file"""
+        """Save graph to JSON file using Pydantic model_dump"""
+        data = {
+            "nodes": [node.model_dump() for node in self.nodes],
+            "edges": [edge.model_dump() for edge in self.edges]
+        }
         with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(self.to_dict(), f, indent=2, ensure_ascii=False)
+            json.dump(data, f, indent=2, ensure_ascii=False)
     
     @classmethod
     def load_from_file(cls, filepath: str) -> 'QAGraph':
-        """Load graph from JSON file"""
+        """Load graph from JSON file using Pydantic models"""
         with open(filepath, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
@@ -334,14 +224,14 @@ class QAGraph:
         graph.nodes = []
         graph.edges = []
         
-        # Load nodes
+        # Load nodes using QANode (Pydantic model)
         for node_data in data["nodes"]:
-            node = Node(**node_data)
+            node = QANode(**node_data)
             graph.nodes.append(node)
         
-        # Load edges
+        # Load edges using QAEdge (Pydantic model)
         for edge_data in data["edges"]:
-            edge = Edge(**edge_data)
+            edge = QAEdge(**edge_data)
             graph.edges.append(edge)
         
         return graph
@@ -352,17 +242,11 @@ class QAGraph:
         for node in self.nodes:
             if node.phase not in phases:
                 phases[node.phase] = []
-            phases[node.phase].append({
-                "id": node.id,
-                "type": node.type,
-                "steps": node.steps,
-                "description": node.description
-            })
+            phases[node.phase].append({"id": node.id, "type": node.type})
         
         return {
             "total_nodes": len(self.nodes),
             "total_edges": len(self.edges),
             "phases": phases,
-            "start_node": self.get_start_node().id if self.get_start_node() else None,
-            "workflow_steps": sum(len(node.steps) for node in self.nodes if node.steps)
+            "start_node": self.get_start_node().id if self.get_start_node() else None
         }
