@@ -148,7 +148,13 @@ class QAContext:
             "test_results": self.test_results
         }
         
+        # Custom JSON encoder to handle datetime objects
+        def json_serializer(obj):
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+        
         with open(results_file, 'w', encoding='utf-8') as f:
-            json.dump(results_data, f, indent=2, ensure_ascii=False)
+            json.dump(results_data, f, indent=2, ensure_ascii=False, default=json_serializer)
         
         return results_file

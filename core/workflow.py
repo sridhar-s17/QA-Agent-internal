@@ -1,6 +1,6 @@
 """
 QA Workflow Engine - Orchestrates the execution of QA phases
-Similar to UNO's Workflow class but focused on QA automation
+Uses distributed agent pattern for better maintainability
 """
 
 from typing import Dict, Any, List, Optional
@@ -8,29 +8,36 @@ import logging
 from datetime import datetime
 import asyncio
 
-# No need to import separate agent classes - using handler methods
 import sys
 import os
 # Add project root to path for selenium module
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from agents.AuthenticationAgent import AuthenticationAgent
+from agents.RequirementsGatheringAgent import RequirementsGatheringAgent
+from agents.DiscoveryValidationAgent import DiscoveryValidationAgent
+from agents.WireframesValidationAgent import WireframesValidationAgent
+from agents.DesignValidationAgent import DesignValidationAgent
+from agents.BuildProcessAgent import BuildProcessAgent
+from agents.TestValidationAgent import TestValidationAgent
+from agents.PreviewAppAgent import PreviewAppAgent
+from agents.FinalConfirmationAgent import FinalConfirmationAgent
+from agents.EndAgent import EndAgent
 from selenium_automation.automation_core import SeleniumAutomationCore
 from core.graph import QAGraph
 from models.qa_models import QANode
 
 class QAWorkflow:
     """
-    Manages the execution of QA workflow using graph-based approach with UNO-MCP pattern.
-    Each node type maps to a handler method within this class for better state management.
+    Manages the execution of QA workflow using distributed agent pattern.
+    Each node type is handled by a dedicated agent class for better maintainability.
     """
     
-    # QA Steps are now loaded from external JSON file (qa_steps.json)
-    
     def __init__(self, context):
-        """Initialize QA Workflow with static graph execution"""
+        """Initialize QA Workflow with distributed agents"""
         self.context = context
         self.selenium_core = SeleniumAutomationCore(context)
         
-        # Setup logging FIRST (before using self.logger)
+        # Setup logging
         self.logger = logging.getLogger(f"{__name__}.QAWorkflow")
         
         # Initialize static QA graph
@@ -46,6 +53,20 @@ class QAWorkflow:
         self.executed_nodes = []
         self.failed_nodes = []
         
+        # Initialize all agents
+        self.agents = {
+            "AuthenticationAgent": AuthenticationAgent(self.selenium_core, self.context, self.outputs, "Authentication and setup", "AuthenticationAgent"),
+            "RequirementsGatheringAgent": RequirementsGatheringAgent(self.selenium_core, self.context, self.outputs, "Requirements gathering", "RequirementsGatheringAgent"),
+            "DiscoveryValidationAgent": DiscoveryValidationAgent(self.selenium_core, self.context, self.outputs, "Discovery validation", "DiscoveryValidationAgent"),
+            "WireframesValidationAgent": WireframesValidationAgent(self.selenium_core, self.context, self.outputs, "Wireframes validation", "WireframesValidationAgent"),
+            "DesignValidationAgent": DesignValidationAgent(self.selenium_core, self.context, self.outputs, "Design validation", "DesignValidationAgent"),
+            "BuildProcessAgent": BuildProcessAgent(self.selenium_core, self.context, self.outputs, "Build process", "BuildProcessAgent"),
+            "TestValidationAgent": TestValidationAgent(self.selenium_core, self.context, self.outputs, "Test validation", "TestValidationAgent"),
+            "PreviewAppAgent": PreviewAppAgent(self.selenium_core, self.context, self.outputs, "Preview app", "PreviewAppAgent"),
+            "FinalConfirmationAgent": FinalConfirmationAgent(self.selenium_core, self.context, self.outputs, "Final confirmation", "FinalConfirmationAgent"),
+            "EndAgent": EndAgent(self.selenium_core, self.context, self.outputs, "End workflow", "EndAgent")
+        }
+        
         # Save graph for debugging
         self.graph.save_to_file("qa_workflow_graph.json")
     
@@ -60,7 +81,7 @@ class QAWorkflow:
     
     async def execute_workflow(self, start_node_id: str = None) -> Dict[str, Any]:
         """
-        Execute the complete QA workflow using graph-based execution.
+        Execute the complete QA workflow using distributed agents.
         
         Args:
             start_node_id (str): Node ID to start execution from (default: start node)
@@ -68,7 +89,7 @@ class QAWorkflow:
         Returns:
             Dict[str, Any]: Workflow execution result
         """
-        self.logger.info("🚀 Starting QA Workflow execution (Graph-based)")
+        self.logger.info("🚀 Starting QA Workflow execution (Distributed Agents)")
         
         workflow_start_time = datetime.now()
         
@@ -114,8 +135,7 @@ class QAWorkflow:
     
     async def _execute_graph(self, ready_nodes: List[str]) -> bool:
         """
-        Execute workflow graph using breadth-first approach.
-        Similar to UNO's execute method but for QA workflow.
+        Execute workflow graph using breadth-first approach with distributed agents.
         
         Args:
             ready_nodes: List of node IDs ready for execution
@@ -140,7 +160,7 @@ class QAWorkflow:
             if current_node.introduction:
                 self.context.test_results[f"{current_node_id}_introduction"] = current_node.introduction
             
-            # Execute node
+            # Execute node using distributed agent
             try:
                 response = await self._execute_node(current_node)
                 self.logger.info(f"📊 Response from Node: {current_node_id} - {response.get('type', 'unknown')}")
@@ -184,7 +204,7 @@ class QAWorkflow:
     
     async def _execute_node(self, node: QANode) -> Dict[str, Any]:
         """
-        Execute a specific node using dynamic handler dispatch (UNO-MCP pattern).
+        Execute a specific node using distributed agent pattern.
         
         Args:
             node: Node to execute
@@ -194,13 +214,18 @@ class QAWorkflow:
         """
         self.logger.info(f"🔄 Executing node: {node.id} ({node.type})")
         
-        # Dynamic dispatch to handler method based on node type (like UNO-MCP)
-        node_type = node.type.lower().replace("agent", "")  # "AuthenticationAgent" -> "authentication"
-        handler_method = getattr(self, f'_handle_{node_type}', self._handle_default)
-        
         try:
-            # Execute handler method with full access to workflow state
-            result = await handler_method(node)
+            # Check if agent exists for this node type
+            if node.type not in self.agents:
+                return {
+                    "type": "error",
+                    "message": f"Agent {node.type} not found in agents dictionary",
+                    "node": node.id
+                }
+            
+            # Execute agent
+            agent = self.agents[node.type]
+            result = await agent.execute_agent(node)
             
             self.logger.info(f"📊 Node {node.id} result: {result.get('type', 'unknown')}")
             return result
@@ -258,458 +283,14 @@ class QAWorkflow:
         """Get information about the workflow"""
         graph_summary = self.graph.get_workflow_summary()
         
-        # List of implemented handler methods (UNO-MCP pattern)
-        implemented_handlers = {
-            "AuthenticationAgent": hasattr(self, '_handle_authentication'),
-            "RequirementsGatheringAgent": hasattr(self, '_handle_requirementsgathering'),
-            "DiscoveryValidationAgent": hasattr(self, '_handle_discoveryvalidation'),
-            "WireframesValidationAgent": hasattr(self, '_handle_wireframesvalidation'),
-            "DesignValidationAgent": hasattr(self, '_handle_designvalidation'),
-            "BuildProcessAgent": hasattr(self, '_handle_buildprocess'),
-            "TestValidationAgent": hasattr(self, '_handle_testvalidation'),
-            "PreviewAppAgent": hasattr(self, '_handle_previewapp'),
-            "FinalConfirmationAgent": hasattr(self, '_handle_finalconfirmation'),
-            "EndAgent": hasattr(self, '_handle_end')
-        }
-        
         return {
             "total_nodes": len(self.graph.nodes),
             "total_edges": len(self.graph.edges),
             "graph_summary": graph_summary,
-            "handler_methods": implemented_handlers,
-            "qa_steps_config": self.graph.steps_config,  # Use steps from JSON file
+            "qa_steps_config": self.graph.steps_config,
             "current_node": self.current_node_id,
             "executed_nodes": self.executed_nodes,
             "failed_nodes": self.failed_nodes,
-            "outputs": self.outputs
-        }
-    
-    # ==================== AGENT HANDLER METHODS (UNO-MCP Pattern) ====================
-    
-    async def _handle_authentication(self, node: QANode) -> Dict[str, Any]:
-        """
-        Handles the 'AuthenticationAgent' node - Phase 1: AUTHENTICATION & SETUP
-        Gets selenium functions from node and executes them directly
-        """
-        self.logger.info("🚀 Starting AUTHENTICATION & SETUP phase")
-        
-        try:
-            # Update context
-            self.context.current_phase = "authentication"
-            
-            # Get selenium functions from node
-            selenium_functions = getattr(node, 'selenium_functions', [])
-            if not selenium_functions:
-                return self._create_failure_result("No selenium functions found in node", "Missing selenium_functions")
-            
-            self.logger.info(f"🔄 Executing selenium functions: {selenium_functions}")
-            
-            auth_result = {
-                "functions_executed": [],
-                "browser_session": "active"
-            }
-            
-            # Execute each selenium function directly
-            for function_name in selenium_functions:
-                self.logger.info(f"🔄 Executing selenium function: {function_name}")
-                
-                # Execute selenium function
-                step_result = await self._execute_selenium_function(function_name)
-                
-                if not step_result["success"]:
-                    return self._create_failure_result(f"Function '{function_name}' failed", step_result["message"])
-                
-                # Store function result
-                auth_result["functions_executed"].append({
-                    "function": function_name,
-                    "result": step_result,
-                    "timestamp": datetime.now().isoformat()
-                })
-            
-            # Store result in workflow outputs for other agents to access
-            self.outputs[node.id] = auth_result
-            
-            # Phase completed successfully
-            return self._create_success_result("Authentication & Setup completed successfully", "Discovery")
-            
-        except Exception as e:
-            error_msg = f"Authentication phase failed: {e}"
-            self.logger.error(error_msg)
-            return self._create_failure_result("Phase execution failed", error_msg)
-    
-    async def _handle_requirementsgathering(self, node: QANode) -> Dict[str, Any]:
-        """
-        Handles the 'RequirementsGatheringAgent' node - Phase 2: REQUIREMENTS GATHERING
-        Gets selenium functions from node and executes them directly
-        """
-        self.logger.info("📋 Starting REQUIREMENTS GATHERING phase")
-        
-        try:
-            # Access previous agent results for coordination
-            auth_output = self.outputs.get("authentication_1", {})
-            self.logger.info(f"Previous auth result: {auth_output}")
-            
-            # Update context
-            self.context.current_phase = "requirements"
-            
-            # Get selenium functions from node
-            selenium_functions = getattr(node, 'selenium_functions', [])
-            if not selenium_functions:
-                return self._create_failure_result("No selenium functions found in node", "Missing selenium_functions")
-            
-            self.logger.info(f"🔄 Executing selenium functions: {selenium_functions}")
-            
-            requirements_result = {
-                "functions_executed": [],
-                "questions_answered": 0
-            }
-            
-            # Execute each selenium function directly
-            for function_name in selenium_functions:
-                self.logger.info(f"🔄 Executing selenium function: {function_name}")
-                
-                # Execute selenium function
-                step_result = await self._execute_selenium_function(function_name)
-                
-                if not step_result["success"]:
-                    return self._create_failure_result(f"Function '{function_name}' failed", step_result["message"])
-                
-                # Store function result
-                requirements_result["functions_executed"].append({
-                    "function": function_name,
-                    "result": step_result,
-                    "timestamp": datetime.now().isoformat()
-                })
-                
-                # Extract questions count if available
-                if "answered" in step_result.get("message", "").lower():
-                    try:
-                        import re
-                        match = re.search(r'answered (\d+)', step_result["message"].lower())
-                        if match:
-                            requirements_result["questions_answered"] = int(match.group(1))
-                    except:
-                        requirements_result["questions_answered"] = 1
-            
-            # Store result for next agents
-            self.outputs[node.id] = requirements_result
-            
-            return self._create_success_result("Requirements gathering completed successfully", "Discovery")
-            
-        except Exception as e:
-            error_msg = f"Requirements gathering failed: {e}"
-            self.logger.error(error_msg)
-            return self._create_failure_result("Requirements phase failed", error_msg)
-    
-    async def _handle_discoveryvalidation(self, node: QANode) -> Dict[str, Any]:
-        """
-        Handles the 'DiscoveryValidationAgent' node - Phase 3: DISCOVERY DOCUMENT VALIDATION
-        Gets selenium functions from node and executes them directly
-        """
-        self.logger.info("📄 Starting DISCOVERY DOCUMENT VALIDATION phase")
-        
-        try:
-            # Access previous results for coordination
-            auth_output = self.outputs.get("authentication_1", {})
-            requirements_output = self.outputs.get("requirements_2", {})
-            
-            # Update context
-            self.context.current_phase = "discovery"
-            
-            # Get selenium functions from node
-            selenium_functions = getattr(node, 'selenium_functions', [])
-            if not selenium_functions:
-                return self._create_failure_result("No selenium functions found in node", "Missing selenium_functions")
-            
-            self.logger.info(f"🔄 Executing selenium functions: {selenium_functions}")
-            
-            discovery_result = {"functions_executed": [], "document_validated": True}
-            
-            # Execute each selenium function directly
-            for function_name in selenium_functions:
-                step_result = await self._execute_selenium_function(function_name)
-                if not step_result["success"]:
-                    return self._create_failure_result(f"Function '{function_name}' failed", step_result["message"])
-                
-                discovery_result["functions_executed"].append({
-                    "function": function_name,
-                    "result": step_result,
-                    "timestamp": datetime.now().isoformat()
-                })
-            
-            # Store result
-            self.outputs[node.id] = discovery_result
-            
-            return self._create_success_result("Discovery document validated successfully", "Wireframe")
-            
-        except Exception as e:
-            error_msg = f"Discovery validation failed: {e}"
-            self.logger.error(error_msg)
-            return self._create_failure_result("Discovery validation failed", error_msg)
-    
-    async def _handle_wireframesvalidation(self, node: QANode) -> Dict[str, Any]:
-        """
-        Handles the 'WireframesValidationAgent' node - Phase 4: WIREFRAMES VALIDATION
-        Gets selenium functions from node and executes them directly
-        """
-        self.logger.info("🎨 Starting WIREFRAMES VALIDATION phase")
-        
-        try:
-            self.context.current_phase = "wireframes"
-            
-            # Get selenium functions from node
-            selenium_functions = getattr(node, 'selenium_functions', [])
-            if not selenium_functions:
-                return self._create_failure_result("No selenium functions found in node", "Missing selenium_functions")
-            
-            wireframes_result = {"functions_executed": [], "wireframes_validated": True}
-            
-            # Execute each selenium function directly
-            for function_name in selenium_functions:
-                step_result = await self._execute_selenium_function(function_name)
-                if not step_result["success"]:
-                    return self._create_failure_result(f"Function '{function_name}' failed", step_result["message"])
-                
-                wireframes_result["functions_executed"].append({
-                    "function": function_name,
-                    "result": step_result,
-                    "timestamp": datetime.now().isoformat()
-                })
-            
-            self.outputs[node.id] = wireframes_result
-            
-            return self._create_success_result("Wireframes validated successfully", "Specification")
-            
-        except Exception as e:
-            error_msg = f"Wireframes validation failed: {e}"
-            self.logger.error(error_msg)
-            return self._create_failure_result("Wireframes validation failed", error_msg)
-    
-    async def _handle_designvalidation(self, node: QANode) -> Dict[str, Any]:
-        """Handles the 'DesignValidationAgent' node - Gets selenium functions from node and executes them directly"""
-        self.logger.info("📐 Starting DESIGN DOCUMENT VALIDATION phase")
-        
-        try:
-            self.context.current_phase = "design"
-            selenium_functions = getattr(node, 'selenium_functions', [])
-            if not selenium_functions:
-                return self._create_failure_result("No selenium functions found in node", "Missing selenium_functions")
-            
-            design_result = {"functions_executed": [], "design_validated": True}
-            
-            for function_name in selenium_functions:
-                step_result = await self._execute_selenium_function(function_name)
-                if not step_result["success"]:
-                    return self._create_failure_result(f"Function '{function_name}' failed", step_result["message"])
-                
-                design_result["functions_executed"].append({
-                    "function": function_name, "result": step_result, "timestamp": datetime.now().isoformat()
-                })
-            
-            self.outputs[node.id] = design_result
-            return self._create_success_result("Design document validated successfully", "Build")
-            
-        except Exception as e:
-            return self._create_failure_result("Design validation failed", str(e))
-    
-    async def _handle_buildprocess(self, node: QANode) -> Dict[str, Any]:
-        """Handles the 'BuildProcessAgent' node - Gets selenium functions from node and executes them directly"""
-        self.logger.info("🔨 Starting BUILD PROCESS phase")
-        
-        try:
-            self.context.current_phase = "build"
-            selenium_functions = getattr(node, 'selenium_functions', [])
-            if not selenium_functions:
-                return self._create_failure_result("No selenium functions found in node", "Missing selenium_functions")
-            
-            build_result = {"functions_executed": [], "build_completed": True}
-            
-            for function_name in selenium_functions:
-                step_result = await self._execute_selenium_function(function_name)
-                if not step_result["success"]:
-                    return self._create_failure_result(f"Function '{function_name}' failed", step_result["message"])
-                
-                build_result["functions_executed"].append({
-                    "function": function_name, "result": step_result, "timestamp": datetime.now().isoformat()
-                })
-            
-            self.outputs[node.id] = build_result
-            return self._create_success_result("Build process completed successfully", "Test")
-            
-        except Exception as e:
-            return self._create_failure_result("Build process failed", str(e))
-    
-    async def _handle_testvalidation(self, node: QANode) -> Dict[str, Any]:
-        """Handles the 'TestValidationAgent' node - Gets selenium functions from node and executes them directly"""
-        self.logger.info("🧪 Starting TEST PLAN VALIDATION phase")
-        
-        try:
-            self.context.current_phase = "test"
-            selenium_functions = getattr(node, 'selenium_functions', [])
-            if not selenium_functions:
-                return self._create_failure_result("No selenium functions found in node", "Missing selenium_functions")
-            
-            test_result = {"functions_executed": [], "test_plan_validated": True}
-            
-            for function_name in selenium_functions:
-                step_result = await self._execute_selenium_function(function_name)
-                if not step_result["success"]:
-                    return self._create_failure_result(f"Function '{function_name}' failed", step_result["message"])
-                
-                test_result["functions_executed"].append({
-                    "function": function_name, "result": step_result, "timestamp": datetime.now().isoformat()
-                })
-            
-            self.outputs[node.id] = test_result
-            return self._create_success_result("Test plan validated successfully", "Test")
-            
-        except Exception as e:
-            return self._create_failure_result("Test validation failed", str(e))
-    
-    async def _handle_previewapp(self, node: QANode) -> Dict[str, Any]:
-        """Handles the 'PreviewAppAgent' node - Gets selenium functions from node and executes them directly"""
-        self.logger.info("👀 Starting PREVIEW APP phase")
-        
-        try:
-            self.context.current_phase = "preview"
-            selenium_functions = getattr(node, 'selenium_functions', [])
-            if not selenium_functions:
-                return self._create_failure_result("No selenium functions found in node", "Missing selenium_functions")
-            
-            preview_result = {"functions_executed": [], "preview_validated": True}
-            
-            for function_name in selenium_functions:
-                step_result = await self._execute_selenium_function(function_name)
-                if not step_result["success"]:
-                    return self._create_failure_result(f"Function '{function_name}' failed", step_result["message"])
-                
-                preview_result["functions_executed"].append({
-                    "function": function_name, "result": step_result, "timestamp": datetime.now().isoformat()
-                })
-            
-            self.outputs[node.id] = preview_result
-            return self._create_success_result("Application preview validated successfully", "Deploy")
-            
-        except Exception as e:
-            return self._create_failure_result("Preview validation failed", str(e))
-    
-    async def _handle_finalconfirmation(self, node: QANode) -> Dict[str, Any]:
-        """Handles the 'FinalConfirmationAgent' node - Gets selenium functions from node and executes them directly"""
-        self.logger.info("🎯 Starting FINAL CONFIRMATION phase")
-        
-        try:
-            self.context.current_phase = "final"
-            selenium_functions = getattr(node, 'selenium_functions', [])
-            if not selenium_functions:
-                return self._create_failure_result("No selenium functions found in node", "Missing selenium_functions")
-            
-            final_result = {"functions_executed": [], "workflow_completed": True}
-            
-            for function_name in selenium_functions:
-                step_result = await self._execute_selenium_function(function_name)
-                if not step_result["success"]:
-                    return self._create_failure_result(f"Function '{function_name}' failed", step_result["message"])
-                
-                final_result["functions_executed"].append({
-                    "function": function_name, "result": step_result, "timestamp": datetime.now().isoformat()
-                })
-            
-            self.outputs[node.id] = final_result
-            return self._create_success_result("QA automation workflow completed successfully!", "Deploy")
-            
-        except Exception as e:
-            return self._create_failure_result("Final confirmation failed", str(e))
-    
-    async def _handle_end(self, node: QANode) -> Dict[str, Any]:
-        """
-        Handles the 'EndAgent' node - Workflow completion
-        """
-        self.logger.info("🏁 Workflow completed successfully")
-        
-        # Generate final summary with access to all outputs
-        summary = {
-            "total_phases": len([k for k in self.outputs.keys() if k != "end_workflow"]),
-            "executed_nodes": self.executed_nodes,
-            "workflow_outputs": self.outputs,
-            "completion_time": datetime.now().isoformat()
-        }
-        
-        return {
-            "phase": "End",
-            "type": "completion",
-            "message": "🎉 QA Automation completed! All phases validated successfully.",
-            "summary": summary
-        }
-    
-    async def _handle_default(self, node: QANode) -> Dict[str, Any]:
-        """
-        Default handler for unknown node types
-        """
-        return {
-            "type": "error",
-            "message": f"Handler for node type {node.type} not implemented yet"
-        }
-    
-    # ==================== SELENIUM FUNCTION EXECUTION ====================
-    
-    async def _execute_selenium_function(self, function_name: str) -> Dict[str, Any]:
-        """
-        Execute selenium function directly
-        
-        Args:
-            function_name: Name of the selenium function to execute
-            
-        Returns:
-            Dict[str, Any]: Function execution result
-        """
-        try:
-            # Get selenium method dynamically (like UNO's dynamic execution)
-            if hasattr(self.selenium_core, function_name):
-                selenium_method = getattr(self.selenium_core, function_name)
-                
-                # Execute selenium method
-                if function_name in ["initialize_browser"]:
-                    # Methods that return boolean
-                    success = selenium_method()
-                    message = f"{function_name} completed" if success else f"{function_name} failed"
-                    return {"success": success, "message": message}
-                else:
-                    # Methods that return (success, message) tuple
-                    success, message = selenium_method()
-                    return {"success": success, "message": message}
-            else:
-                return {"success": False, "message": f"Selenium function '{function_name}' not found"}
-                
-        except Exception as e:
-            return {"success": False, "message": f"Selenium function '{function_name}' failed: {e}"}
-    
-
-    
-
-    
-
-    
-    # ==================== HELPER METHODS ====================
-    
-    def _create_success_result(self, message: str, next_phase: str) -> Dict[str, Any]:
-        """Create success result dictionary"""
-        return {
-            "phase": self.context.current_phase,
-            "type": "success",
-            "message": message,
-            "timestamp": datetime.now().isoformat(),
-            "next_phase": next_phase,
-            "workflow_outputs": self.outputs  # Include all outputs for coordination
-        }
-    
-    def _create_failure_result(self, error_type: str, message: str) -> Dict[str, Any]:
-        """Create failure result dictionary"""
-        return {
-            "phase": self.context.current_phase,
-            "type": "error",
-            "error_type": error_type,
-            "message": message,
-            "timestamp": datetime.now().isoformat(),
-            "next_phase": None,  # Stop execution on failure
-            "workflow_outputs": self.outputs
+            "outputs": self.outputs,
+            "available_agents": list(self.agents.keys())
         }
