@@ -122,20 +122,23 @@ def click_element_safe(driver, selector, wait_time=10, by_xpath=False):
 class SeleniumAutomationCore:
     """
     Core Selenium automation wrapper for QA Agent architecture.
-    Uses local helper functions instead of importing from Studio_Automation.
+    Uses BaseAgent's logger for consistent logging across the system.
     """
     
-    def __init__(self, context):
+    def __init__(self, context, logger=None):
         """
         Initialize Selenium automation core.
         
         Args:
             context: QA context for session management
+            logger: Logger instance from BaseAgent (optional)
         """
         self.context = context
         self.driver: Optional[webdriver.Chrome] = None
         self.elements: Dict[str, Any] = {}
-        self.logger = None
+        
+        # Use provided logger or create a fallback
+        self._logger = logger
         self.session_dir = None
         self.attachments_dir = None
         self.success_dir = None
@@ -145,6 +148,35 @@ class SeleniumAutomationCore:
         self.platform_url = os.getenv("QA_PLATFORM_URL", "https://ft6.bifreedom.com")
         self.username = os.getenv("QA_USERNAME", "sridharofficial17@gmail.com")
         self.password = os.getenv("QA_PASSWORD", "Pillir@111")
+    
+    @property
+    def logger(self):
+        """Property to get the current logger, creating a fallback if needed"""
+        if not self._logger:
+            # Create a simple fallback logger if none provided
+            self._logger = logging.getLogger(self.__class__.__name__)
+            if not self._logger.handlers:
+                handler = logging.StreamHandler()
+                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                handler.setFormatter(formatter)
+                self._logger.addHandler(handler)
+                self._logger.setLevel(logging.INFO)
+        return self._logger
+    
+    @logger.setter
+    def logger(self, value):
+        """Setter for logger property"""
+        self._logger = value
+    
+    def set_logger(self, logger):
+        """
+        Set the logger for selenium automation core.
+        This allows agents to share their logger with selenium operations.
+        
+        Args:
+            logger: Logger instance from BaseAgent
+        """
+        self._logger = logger
     
 
     
@@ -200,14 +232,12 @@ class SeleniumAutomationCore:
             # Add to context
             self.context.add_screenshot(phase, screenshot_path, description)
             
-            if self.logger:
-                self.logger.info(f"📸 Screenshot saved: {screenshot_path}")
+            self.logger.info(f"📸 Screenshot saved: {screenshot_path}")
             
             return screenshot_path
             
         except Exception as e:
-            if self.logger:
-                self.logger.warning(f"⚠️ Failed to take screenshot: {e}")
+            self.logger.warning(f"⚠️ Failed to take screenshot: {e}")
             return ""
     
     def execute_authentication_phase(self,random_selection=True) -> Tuple[bool, str]:
@@ -217,8 +247,9 @@ class SeleniumAutomationCore:
         """
         try:
             # STEP 1: Initialize Browser - Setup logging FIRST
-            # Setup logging using existing function
-            self.logger, self.session_dir, self.attachments_dir, self.success_dir, self.error_dir = setup_logging()
+            # Setup logging using existing function if no logger provided and directories needed
+            if not self._logger:
+                self.logger, self.session_dir, self.attachments_dir, self.success_dir, self.error_dir = setup_logging()
             
             self.logger.info("🚀 Starting AUTHENTICATION PHASE - Step 1: Browser Initialization")
             
@@ -422,8 +453,7 @@ class SeleniumAutomationCore:
                 self.logger.info("⚠️ Browser window kept open for inspection")
                 self.logger.info("⚠️ Please close the browser manually when done")
         except Exception as e:
-            if self.logger:
-                self.logger.warning(f"⚠️ Cleanup warning: {e}")
+            self.logger.warning(f"⚠️ Cleanup warning: {e}")
     
     def get_driver(self):
         """Get the WebDriver instance"""

@@ -44,7 +44,8 @@ class QAClient:
             level=logging.INFO,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             handlers=[
-                logging.StreamHandler(sys.stdout)
+                logging.StreamHandler(sys.stdout),
+                logging.FileHandler('master_agent.log', encoding='utf-8')
             ]
         )
     
