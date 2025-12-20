@@ -13,9 +13,8 @@ class BaseAgent(ABC):
         
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         
-        # Create absolute path for the log file in the agents directory
-        agents_dir = os.path.dirname(os.path.abspath(__file__))
-        log_file_path = os.path.join(agents_dir, 'agents_activity.log')
+        # Use context's logs directory for the log file
+        log_file_path = os.path.join(context.logs_dir, 'agents_activity.log')
         
         file_handler = logging.FileHandler(log_file_path, encoding='utf-8')
         file_handler.setFormatter(formatter)
@@ -29,6 +28,9 @@ class BaseAgent(ABC):
         if not self.logger.handlers:
             self.logger.addHandler(file_handler)
             self.logger.addHandler(console_handler)
+            
+        # Log the initialization with new path
+        self.logger.info(f"🚀 {self.__class__.__name__} initialized - Log file: {log_file_path}")
         
         self.task = task
         self.selenium = selenium_instance
@@ -90,13 +92,12 @@ class BaseAgent(ABC):
 
     def test_logging(self):
         """Test method to verify logging is working correctly"""
-        self.logger.info("🧪 Testing agent logging - this should appear in both console and agents_activity.log")
+        self.logger.info("🧪 Testing agent logging - this should appear in both console and results/logs/agents_activity.log")
         self.logger.warning("⚠️ Testing warning level logging")
         self.logger.error("❌ Testing error level logging")
         
         # Check if log file exists and is writable
-        agents_dir = os.path.dirname(os.path.abspath(__file__))
-        log_file_path = os.path.join(agents_dir, 'agents_activity.log')
+        log_file_path = os.path.join(self.context.logs_dir, 'agents_activity.log')
         
         if os.path.exists(log_file_path):
             self.logger.info(f"✅ Log file exists at: {log_file_path}")

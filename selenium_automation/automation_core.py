@@ -200,7 +200,7 @@ class SeleniumAutomationCore:
 
     def _take_screenshot(self, phase: str, description: str, is_error: bool = False) -> str:
         """
-        Take screenshot and save with timestamp.
+        Take screenshot and save with timestamp in phase-organized folders.
         
         Args:
             phase (str): Current phase name
@@ -215,16 +215,21 @@ class SeleniumAutomationCore:
             tab_session = self.context.tab_session or "unknown_tab"
             
             # Create filename with tab session and timestamp
-            filename = f"{phase}_{description}_{tab_session}_{timestamp}.png"
+            filename = f"{description}_{tab_session}.png"
             
-            # Choose directory based on error status
-            if is_error and self.error_dir:
-                screenshot_path = os.path.join(self.error_dir, filename)
-            elif self.success_dir:
-                screenshot_path = os.path.join(self.success_dir, filename)
+            # Create phase-based directory structure
+            if is_error:
+                # Error screenshots go in screenshots/errors/{phase}/
+                phase_dir = os.path.join(self.context.screenshots_dir, "errors", phase)
             else:
-                # Fallback to context screenshots directory
-                screenshot_path = os.path.join(self.context.screenshots_dir, filename)
+                # Success screenshots go in screenshots/{phase}/
+                phase_dir = os.path.join(self.context.screenshots_dir, phase)
+            
+            # Create the phase directory if it doesn't exist
+            os.makedirs(phase_dir, exist_ok=True)
+            
+            # Full screenshot path
+            screenshot_path = os.path.join(phase_dir, filename)
             
             # Take screenshot
             self.driver.save_screenshot(screenshot_path)

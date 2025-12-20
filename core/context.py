@@ -80,15 +80,42 @@ class QAContext:
             self.phase_timings[phase_name]["duration_seconds"] = duration
     
     def add_screenshot(self, phase: str, screenshot_path: str, description: str = ""):
-        """Add screenshot information"""
+        """Add screenshot information with phase organization"""
         if phase not in self.screenshots:
             self.screenshots[phase] = []
         
+        # Extract relative path for better readability in results
+        try:
+            relative_path = os.path.relpath(screenshot_path, self.results_dir)
+        except:
+            relative_path = screenshot_path
+        
         self.screenshots[phase].append({
             "path": screenshot_path,
+            "relative_path": relative_path,
             "timestamp": datetime.now().isoformat(),
-            "description": description
+            "description": description,
+            "filename": os.path.basename(screenshot_path)
         })
+    
+    def get_screenshots_by_phase(self, phase: str) -> list:
+        """Get all screenshots for a specific phase"""
+        return self.screenshots.get(phase, [])
+    
+    def get_all_phases_with_screenshots(self) -> list:
+        """Get list of all phases that have screenshots"""
+        return list(self.screenshots.keys())
+    
+    def get_screenshot_summary(self) -> Dict[str, Any]:
+        """Get summary of screenshots organized by phase"""
+        summary = {}
+        for phase, screenshots in self.screenshots.items():
+            summary[phase] = {
+                "count": len(screenshots),
+                "files": [shot["filename"] for shot in screenshots],
+                "descriptions": [shot["description"] for shot in screenshots]
+            }
+        return summary
     
     def add_error(self, phase: str, error_message: str, screenshot_path: str = None):
         """Add error information"""
@@ -106,7 +133,7 @@ class QAContext:
         self.tab_session = tab_id or f"tab_{datetime.now().strftime('%H%M%S')}"
     
     def get_test_summary(self) -> Dict[str, Any]:
-        """Get comprehensive test summary"""
+        """Get comprehensive test summary with screenshot organization"""
         end_time = datetime.now()
         total_duration = (end_time - self.start_time).total_seconds()
         
@@ -130,9 +157,12 @@ class QAContext:
             "total_phases": total_phases,
             "errors_count": len(self.errors),
             "screenshots_count": sum(len(shots) for shots in self.screenshots.values()),
+            "screenshots_by_phase": self.get_screenshot_summary(),
             "browser_session": self.browser_session,
             "tab_session": self.tab_session,
-            "results_dir": self.results_dir
+            "results_dir": self.results_dir,
+            "screenshots_dir": self.screenshots_dir,
+            "logs_dir": self.logs_dir
         }
     
     def save_results(self):

@@ -33,21 +33,35 @@ class QAClient:
         self.setup_logging()
         self.logger = logging.getLogger(f"{__name__}.QAClient")
         
-        # Create a single workflow instance for graph operations
-        # This is lightweight since it only loads the graph structure
-        self._graph_context = QAContext("graph_operations")
-        self._workflow = QAWorkflow(self._graph_context)
-        
     def setup_logging(self):
-        """Setup console logging"""
+        """Setup initial console logging"""
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             handlers=[
                 logging.StreamHandler(sys.stdout),
+                # Initial log file - will be updated later
                 logging.FileHandler('master_agent.log', encoding='utf-8')
             ]
         )
+    
+    def update_logging_for_context(self, context):
+        """Update logging to use context's logs directory"""
+        # Remove existing file handler
+        root_logger = logging.getLogger()
+        for handler in root_logger.handlers[:]:
+            if isinstance(handler, logging.FileHandler):
+                root_logger.removeHandler(handler)
+                handler.close()
+        
+        # Add new file handler with context path
+        log_file_path = os.path.join(context.logs_dir, 'master_agent.log')
+        file_handler = logging.FileHandler(log_file_path, encoding='utf-8')
+        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        root_logger.addHandler(file_handler)
+        
+        self.logger.info(f"📝 Updated master log file to: {log_file_path}")
+        return log_file_path
     
     async def run_qa_test(self) -> Dict[str, Any]:
         """Run QA automation test with static graph"""
@@ -56,11 +70,17 @@ class QAClient:
         self.logger.info("="*60)
         
         # Create test context
-        test_name = f"qa_automation_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        test_name = f"qa_automation_"
         context = QAContext(test_name)
+        
+        # Update logging to use context's logs directory
+        self.update_logging_for_context(context)
+        
         self.logger.info(f"📋 Test Name: {test_name}")
         self.logger.info(f"🆔 Session ID: {context.session_id}")
         self.logger.info(f"📁 Results Directory: {context.results_dir}")
+        self.logger.info(f"📁 Logs Directory: {context.logs_dir}")
+        
         try:
             # Create workflow with static graph
             workflow = QAWorkflow(context=context)
