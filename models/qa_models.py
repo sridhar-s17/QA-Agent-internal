@@ -13,16 +13,14 @@ class QANode(BaseModel):
     """
     id: str = Field(description="Unique identifier for the node (e.g., 'authentication_1', 'requirements_2').")
     type: str = Field(description="Type of the node.")
-    phase: str = Field(description="QA phase this node belongs")
+    phase: str = Field(description="QA phase this node belongs (Discovery, Wireframe, Specification, Build, Test, Deploy)")
+    QA_phase: Optional[str] = Field(None, description="Detailed QA phase description for this specific node.")
     reads: List[str] = Field(default=[], description="List of node IDs whose output is required before processing this node.")
-    selenium_functions: List[str] = Field(default=[], description="List of Selenium functions to execute for this node.")
-    # screenshot_required: bool = Field(default=True, description="Whether to take screenshots during this node execution.")
     document_interaction: bool = Field(default=False, description="Whether this node involves opening/closing documents.")
     validation_type: Optional[str] = Field(None, description="Type of validation (screen_validation, document_validation, process_validation).")
     introduction: Optional[str] = Field(None, description="Introductory message for the node based on the type.")
     guided_step: Optional[str] = Field(None, description="Guided step description for user interface.")
     guided_step_complete: Optional[str] = Field(None, description="Message indicating the guided step completion.")
-    # error_handling: Optional[str] = Field(None, description="Specific error handling instructions for this node.")
 
 class QAEdge(BaseModel):
     """

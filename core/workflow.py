@@ -77,6 +77,7 @@ class QAWorkflow:
             if edge.source not in edge_dict:
                 edge_dict[edge.source] = []
             edge_dict[edge.source].append(edge)
+        print(edge_dict)
         return edge_dict
     
     async def execute_workflow(self, start_node_id: str = None) -> Dict[str, Any]:
@@ -222,7 +223,7 @@ class QAWorkflow:
                     "message": f"Agent {node.type} not found in agents dictionary",
                     "node": node.id
                 }
-            
+            print(f"node type ---->{node.type}")
             # Execute agent
             agent = self.agents[node.type]
             result = await agent.execute_agent(node)

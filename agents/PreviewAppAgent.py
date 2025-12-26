@@ -11,9 +11,9 @@ class PreviewAppAgent(BaseAgent):
         
         try:
             self.context.current_phase = "preview"
-            selenium_functions = getattr(node, 'selenium_functions', [])
-            if not selenium_functions:
-                return self._create_failure_result("No selenium functions found in node", "Missing selenium_functions")
+            
+            # Get built-in selenium functions for this agent
+            selenium_functions = ['validate_app_preview']  # Built-in function for app preview
             
             preview_result = {"functions_executed": [], "preview_validated": True}
             

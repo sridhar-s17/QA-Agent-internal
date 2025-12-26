@@ -8,11 +8,12 @@ import json
 import yaml
 from pathlib import Path
 from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 import boto3
 from botocore.config import Config
 from pydantic import BaseModel
-from typing import Dict, Any, Union
+from typing import Dict, Any, Union, List
 
 # Load environment variables
 load_dotenv()
@@ -44,7 +45,7 @@ class ModelManager:
 class Gemini:
     """
     Gemini LLM client for QA Agent.
-    Simplified version of UNO's Gemini class.
+    Simplified version of UNO's Gemini class with graph generation capabilities.
     """
     
     def __init__(self, model_id: str):
@@ -52,6 +53,29 @@ class Gemini:
         apikey = os.environ.get("GEMINI_API_KEY")
         self.client = genai.Client(api_key=apikey)
         self.model_id = model_id
+    
+    def generate_content(self, system_prompt: str) -> Dict[str, Union[str, int]]:
+        """
+        Generate text content from Gemini model.
+        
+        Args:
+            system_prompt: The prompt to send to the model
+            
+        Returns:
+            Dict with content and token count
+        """
+        try:
+            response = self.client.models.generate_content(
+                model=self.model_id,
+                contents=[system_prompt]
+            )
+            return {
+                "content": self._clean_response(response.text),
+                "token_count": response.usage_metadata.total_token_count
+            }
+        except Exception as e:
+            print(f"Gemini content generation failed: {e}")
+            raise
     
     def generate_json(self, system_prompt: str, response_schema: BaseModel) -> Dict[str, Union[str, int]]:
         """
@@ -80,6 +104,22 @@ class Gemini:
         except Exception as e:
             print(f"Gemini JSON generation failed: {e}")
             raise
+    
+    def _clean_response(self, text: str) -> str:
+        """
+        Clean response text by removing markdown code fences.
+        
+        Args:
+            text: Raw response text
+            
+        Returns:
+            Cleaned text
+        """
+        if text.startswith('```') and text.endswith('```'):
+            lines = text.split('\n')
+            if len(lines) > 2:
+                return '\n'.join(lines[1:-1])
+        return text
 
 class Bedrock:
     """

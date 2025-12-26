@@ -16,10 +16,8 @@ class RequirementsGatheringAgent(BaseAgent):
             # Update context
             self.context.current_phase = "requirements"
             
-            # Get selenium functions from node
-            selenium_functions = getattr(node, 'selenium_functions', [])
-            if not selenium_functions:
-                return self._create_failure_result("No selenium functions found in node", "Missing selenium_functions")
+            # Get built-in selenium functions for this agent
+            selenium_functions = ['answer_all_questions']  # Built-in function for requirements gathering
             
             self.logger.info(f"🔄 Executing selenium functions: {selenium_functions}")
             
