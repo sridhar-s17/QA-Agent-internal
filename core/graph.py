@@ -48,113 +48,139 @@ class QAGraph:
         """Build the QA workflow graph with all phases using steps from JSON config"""
         
         # Phase 1: AUTHENTICATION & SETUP
-        qa_app = QALLMApplication()
-        graph = qa_app.generate_qa_graph()
+        # qa_app = QALLMApplication()
+        # graph = qa_app.generate_qa_graph()
 
-        # auth_config = self.steps_config["authentication"]
-        # auth_node = QANode(
-        #     id="authentication_1",
-        #     type=NodeType.AUTHENTICATION.value,
-        #     phase=auth_config["phase"],
-        #     reads=[],  # Start node has no dependencies
-        #     selenium_functions=auth_config["selenium_functions"] # Get first selenium function
-        # )
+        auth_config = self.steps_config["authentication"]
+        auth_node = QANode(
+            id="authentication_1",
+            type=NodeType.AUTHENTICATION.value,
+            phase=auth_config["phase"],
+            reads=[],  # Start node has no dependencies
+            #selenium_functions=auth_config["selenium_functions"] # Get first selenium function
+        )
         
-        # # Phase 2: REQUIREMENTS GATHERING  
-        # requirements_config = self.steps_config["requirements"]
-        # requirements_node = QANode(
-        #     id="requirements_2",
-        #     type=NodeType.REQUIREMENTS_GATHERING.value,
-        #     phase=requirements_config["phase"],
-        #     reads=["authentication_1"],
-        #     selenium_functions=requirements_config["selenium_functions"]
-        # )
+        # Phase 2: REQUIREMENTS GATHERING  
+        requirements_config = self.steps_config["requirements"]
+        requirements_node = QANode(
+            id="requirements_2",
+            type=NodeType.REQUIREMENTS_GATHERING.value,
+            phase=requirements_config["phase"],
+            reads=["authentication_1"],
+            #selenium_functions=requirements_config["selenium_functions"]
+        )
         
-        # # Phase 3: DISCOVERY DOCUMENT VALIDATION
-        # discovery_config = self.steps_config["discovery"]
-        # discovery_validation_node = QANode(
-        #     id="discovery_validation_3",
-        #     type=NodeType.DISCOVERY_VALIDATION.value,
-        #     phase=discovery_config["phase"],
-        #     reads=["requirements_2"],
-        #     selenium_functions=discovery_config["selenium_functions"]
-        # )
+        # Phase 3: DISCOVERY DOCUMENT VALIDATION
+        discovery_config = self.steps_config["discovery"]
+        discovery_validation_node = QANode(
+            id="discovery_validation_3",
+            type=NodeType.DISCOVERY_VALIDATION.value,
+            phase=discovery_config["phase"],
+            reads=["requirements_2"],
+            #selenium_functions=discovery_config["selenium_functions"]
+        )
         
-        # # Phase 4: WIREFRAMES VALIDATION
-        # wireframes_config = self.steps_config["wireframes"]
-        # wireframes_validation_node = QANode(
-        #     id="wireframes_validation_4",
-        #     type=NodeType.WIREFRAMES_VALIDATION.value,
-        #     phase=wireframes_config["phase"],
-        #     reads=["discovery_validation_3"],
-        #     selenium_functions=wireframes_config["selenium_functions"]
-        # )
+        # Phase 4: WIREFRAMES VALIDATION
+        wireframes_config = self.steps_config["wireframes"]
+        wireframes_validation_node = QANode(
+            id="wireframes_validation_4",
+            type=NodeType.WIREFRAMES_VALIDATION.value,
+            phase=wireframes_config["phase"],
+            reads=["discovery_validation_3"],
+            #selenium_functions=wireframes_config["selenium_functions"]
+        )
         
-        # # Phase 5: DESIGN DOCUMENT VALIDATION
-        # design_config = self.steps_config["design"]
-        # design_validation_node = QANode(
-        #     id="design_validation_5", 
-        #     type=NodeType.DESIGN_VALIDATION.value,
-        #     phase=design_config["phase"],
-        #     reads=["wireframes_validation_4"],
-        #     selenium_functions=design_config["selenium_functions"]
-        # )
+        # Phase 5: DESIGN DOCUMENT VALIDATION
+        design_config = self.steps_config["design"]
+        design_validation_node = QANode(
+            id="design_validation_5", 
+            type=NodeType.DESIGN_VALIDATION.value,
+            phase=design_config["phase"],
+            reads=["wireframes_validation_4"],
+            #selenium_functions=design_config["selenium_functions"]
+        )
         
-        # # Phase 6: BUILD PROCESS
-        # build_config = self.steps_config["build"]
-        # build_process_node = QANode(
-        #     id="build_process_6",
-        #     type=NodeType.BUILD_PROCESS.value,
-        #     phase=build_config["phase"],
-        #     reads=["design_validation_5"],
-        #     selenium_functions=build_config["selenium_functions"]
-        # )
+        # Phase 6: BUILD PROCESS
+        build_config = self.steps_config["build"]
+        build_process_node = QANode(
+            id="build_process_6",
+            type=NodeType.BUILD_PROCESS.value,
+            phase=build_config["phase"],
+            reads=["design_validation_5"],
+            #selenium_functions=build_config["selenium_functions"]
+        )
         
-        # # Phase 7: TEST PLAN VALIDATION
-        # test_config = self.steps_config["test"]
-        # test_validation_node = QANode(
-        #     id="test_validation_7",
-        #     type=NodeType.TEST_VALIDATION.value,
-        #     phase=test_config["phase"],
-        #     reads=["build_process_6"],
-        #     selenium_functions=test_config["selenium_functions"]
-        # )
+        # Phase 7: TEST PLAN VALIDATION
+        test_config = self.steps_config["test"]
+        test_validation_node = QANode(
+            id="test_validation_7",
+            type=NodeType.TEST_VALIDATION.value,
+            phase=test_config["phase"],
+            reads=["build_process_6"],
+            #selenium_functions=test_config["selenium_functions"]
+        )
         
-        # # Phase 8: PREVIEW APP
-        # preview_config = self.steps_config["preview"]
-        # preview_app_node = QANode(
-        #     id="preview_app_8",
-        #     type=NodeType.PREVIEW_APP.value,
-        #     phase=preview_config["phase"],
-        #     reads=["test_validation_7"],
-        #     selenium_functions=preview_config["selenium_functions"]
-        # )
+        # Phase 8: PREVIEW APP
+        preview_config = self.steps_config["preview"]
+        preview_app_node = QANode(
+            id="preview_app_8",
+            type=NodeType.PREVIEW_APP.value,
+            phase=preview_config["phase"],
+            reads=["test_validation_7"],
+            #selenium_functions=preview_config["selenium_functions"]
+        )
         
-        # # Phase 9: FINAL CONFIRMATION
-        # final_config = self.steps_config["final"]
-        # final_confirmation_node = QANode(
-        #     id="final_confirmation_9",
-        #     type=NodeType.FINAL_CONFIRMATION.value,
-        #     phase=final_config["phase"],
-        #     reads=["preview_app_8"],
-        #     selenium_functions=final_config["selenium_functions"]
-        # )
+        # Phase 9: FINAL CONFIRMATION
+        final_config = self.steps_config["final"]
+        final_confirmation_node = QANode(
+            id="final_confirmation_9",
+            type=NodeType.FINAL_CONFIRMATION.value,
+            phase=final_config["phase"],
+            reads=["preview_app_8"],
+            #selenium_functions=final_config["selenium_functions"]
+        )
         
-        # # End node (no selenium function needed)
-        # end_node = QANode(
-        #     id="end_workflow",
-        #     type=NodeType.END.value,
-        #     phase="Deploy",
-        #     reads=["final_confirmation_9"]
-        #     # No selenium_function for end node
-        # )
-        
-        # Add all nodes
-        self.nodes = graph.nodes
+        # End node (no selenium function needed)
+        end_node = QANode(
+            id="end_workflow",
+            type=NodeType.END.value,
+            phase="Deploy",
+            reads=["final_confirmation_9"]
+            # No selenium_function for end node
+        )
+        self.nodes = [
+            auth_node,
+            requirements_node,
+            discovery_validation_node,
+            wireframes_validation_node,
+            design_validation_node,
+            build_process_node,
+            test_validation_node,
+            preview_app_node,
+            final_confirmation_node,
+            end_node
+        ]
         print(self.nodes)
         # Define edges (workflow flow)
-        self.edges = graph.edges
-        print(self.edges)
+        self.edges = [
+            # Linear success flow using QAEdge (Pydantic model)
+            QAEdge(source="authentication_1", target="requirements_2"),
+            QAEdge(source="requirements_2", target="discovery_validation_3"),
+            QAEdge(source="discovery_validation_3", target="wireframes_validation_4"),
+            QAEdge(source="wireframes_validation_4", target="design_validation_5"),
+            QAEdge(source="design_validation_5", target="build_process_6"),
+            QAEdge(source="build_process_6", target="test_validation_7"),
+            QAEdge(source="test_validation_7", target="preview_app_8"),
+            QAEdge(source="preview_app_8", target="final_confirmation_9"),
+            QAEdge(source="final_confirmation_9", target="end_workflow"),
+        ]
+        # # Add all nodes
+        # self.nodes = graph.nodes
+        # print(self.nodes)
+        # # Define edges (workflow flow)
+        # self.edges = graph.edges
+        # print(self.edges)
+        
     def get_start_node(self) -> Optional[QANode]:
         """Get the starting node of the workflow"""
         # Find node with no incoming edges

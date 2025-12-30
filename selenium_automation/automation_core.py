@@ -145,9 +145,9 @@ class SeleniumAutomationCore:
         self.error_dir = None
         
         # Configuration from environment
-        self.platform_url = os.getenv("QA_PLATFORM_URL", "https://ft6.bifreedom.com")
-        self.username = os.getenv("QA_USERNAME", "sridharofficial17@gmail.com")
-        self.password = os.getenv("QA_PASSWORD", "Pillir@111")
+        self.platform_url = os.getenv("QA_PLATFORM_URL", "http://explorer.pillir.ai/")
+        self.username = os.getenv("QA_USERNAME", "sedhumadhavan.k@pillir.io")
+        self.password = os.getenv("QA_PASSWORD", "Pillir@321")
     
     @property
     def logger(self):

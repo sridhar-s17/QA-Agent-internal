@@ -4,7 +4,7 @@
       "id": "authentication_1",
       "type": "AuthenticationAgent",
       "phase": "Discovery",
-      "QA_phase": "Authentication and setup",
+      "QA_phase": null,
       "reads": [],
       "document_interaction": false,
       "validation_type": null,
@@ -13,10 +13,10 @@
       "guided_step_complete": null
     },
     {
-      "id": "requirements_gathering_1",
+      "id": "requirements_2",
       "type": "RequirementsGatheringAgent",
       "phase": "Discovery",
-      "QA_phase": "Requirements Gathering",
+      "QA_phase": null,
       "reads": [
         "authentication_1"
       ],
@@ -27,12 +27,12 @@
       "guided_step_complete": null
     },
     {
-      "id": "discovery_validation_1",
+      "id": "discovery_validation_3",
       "type": "DiscoveryValidationAgent",
       "phase": "Discovery",
-      "QA_phase": "Discovery Document Validation",
+      "QA_phase": null,
       "reads": [
-        "requirements_gathering_1"
+        "requirements_2"
       ],
       "document_interaction": false,
       "validation_type": null,
@@ -41,12 +41,12 @@
       "guided_step_complete": null
     },
     {
-      "id": "wireframes_validation_1",
+      "id": "wireframes_validation_4",
       "type": "WireframesValidationAgent",
       "phase": "Wireframe",
-      "QA_phase": "Wireframes Validation",
+      "QA_phase": null,
       "reads": [
-        "discovery_validation_1"
+        "discovery_validation_3"
       ],
       "document_interaction": false,
       "validation_type": null,
@@ -55,12 +55,12 @@
       "guided_step_complete": null
     },
     {
-      "id": "design_validation_1",
+      "id": "design_validation_5",
       "type": "DesignValidationAgent",
       "phase": "Specification",
-      "QA_phase": "Design Document Validation",
+      "QA_phase": null,
       "reads": [
-        "wireframes_validation_1"
+        "wireframes_validation_4"
       ],
       "document_interaction": false,
       "validation_type": null,
@@ -69,12 +69,12 @@
       "guided_step_complete": null
     },
     {
-      "id": "build_process_1",
+      "id": "build_process_6",
       "type": "BuildProcessAgent",
       "phase": "Build",
-      "QA_phase": "Build Process – Monitor build process",
+      "QA_phase": null,
       "reads": [
-        "design_validation_1"
+        "design_validation_5"
       ],
       "document_interaction": false,
       "validation_type": null,
@@ -83,12 +83,12 @@
       "guided_step_complete": null
     },
     {
-      "id": "test_validation_1",
+      "id": "test_validation_7",
       "type": "TestValidationAgent",
       "phase": "Test",
-      "QA_phase": "Test Document Validation",
+      "QA_phase": null,
       "reads": [
-        "build_process_1"
+        "build_process_6"
       ],
       "document_interaction": false,
       "validation_type": null,
@@ -97,12 +97,12 @@
       "guided_step_complete": null
     },
     {
-      "id": "preview_app_1",
+      "id": "preview_app_8",
       "type": "PreviewAppAgent",
       "phase": "Test",
-      "QA_phase": "App Preview Validation",
+      "QA_phase": null,
       "reads": [
-        "test_validation_1"
+        "test_validation_7"
       ],
       "document_interaction": false,
       "validation_type": null,
@@ -111,12 +111,12 @@
       "guided_step_complete": null
     },
     {
-      "id": "final_confirmation_1",
+      "id": "final_confirmation_9",
       "type": "FinalConfirmationAgent",
       "phase": "Deploy",
-      "QA_phase": "Final Confirmation",
+      "QA_phase": null,
       "reads": [
-        "preview_app_1"
+        "preview_app_8"
       ],
       "document_interaction": false,
       "validation_type": null,
@@ -125,12 +125,12 @@
       "guided_step_complete": null
     },
     {
-      "id": "end_1",
+      "id": "end_workflow",
       "type": "EndAgent",
       "phase": "Deploy",
-      "QA_phase": "End",
+      "QA_phase": null,
       "reads": [
-        "final_confirmation_1"
+        "final_confirmation_9"
       ],
       "document_interaction": false,
       "validation_type": null,
@@ -142,55 +142,55 @@
   "edges": [
     {
       "source": "authentication_1",
-      "target": "requirements_gathering_1",
+      "target": "requirements_2",
       "label": null,
       "condition": null
     },
     {
-      "source": "requirements_gathering_1",
-      "target": "discovery_validation_1",
+      "source": "requirements_2",
+      "target": "discovery_validation_3",
       "label": null,
       "condition": null
     },
     {
-      "source": "discovery_validation_1",
-      "target": "wireframes_validation_1",
+      "source": "discovery_validation_3",
+      "target": "wireframes_validation_4",
       "label": null,
       "condition": null
     },
     {
-      "source": "wireframes_validation_1",
-      "target": "design_validation_1",
+      "source": "wireframes_validation_4",
+      "target": "design_validation_5",
       "label": null,
       "condition": null
     },
     {
-      "source": "design_validation_1",
-      "target": "build_process_1",
+      "source": "design_validation_5",
+      "target": "build_process_6",
       "label": null,
       "condition": null
     },
     {
-      "source": "build_process_1",
-      "target": "test_validation_1",
+      "source": "build_process_6",
+      "target": "test_validation_7",
       "label": null,
       "condition": null
     },
     {
-      "source": "test_validation_1",
-      "target": "preview_app_1",
+      "source": "test_validation_7",
+      "target": "preview_app_8",
       "label": null,
       "condition": null
     },
     {
-      "source": "preview_app_1",
-      "target": "final_confirmation_1",
+      "source": "preview_app_8",
+      "target": "final_confirmation_9",
       "label": null,
       "condition": null
     },
     {
-      "source": "final_confirmation_1",
-      "target": "end_1",
+      "source": "final_confirmation_9",
+      "target": "end_workflow",
       "label": null,
       "condition": null
     }

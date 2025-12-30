@@ -36,9 +36,9 @@ phases:
 
 # Test Configuration
 test_config:
-  platform_url: "https://ft6.bifreedom.com"
-  username: "sridharofficial17@gmail.com"
-  password: "Pillir@111"
+  platform_url: "https://explorer.pillir.ai/"
+  username: "sedhumadhavan.k@pillir.io"
+  password: "Pillir@321"
   screenshot_on_document_open: true
   results_storage: "local"  # no S3
   session_tracking: true
