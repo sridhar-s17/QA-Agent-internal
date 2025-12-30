@@ -14,7 +14,7 @@ sys.path.append(str(project_root))
 from client import QAClient
 
 async def main():
-    """Run QA automation with simple interface"""
+    """Run QA automation with session management interface"""
     
     print("🤖 QA Agent - Phase 1: AUTHENTICATION & SETUP")
     print("=" * 60)
@@ -23,10 +23,10 @@ async def main():
     print("  Step 2: Select default prompt")
     print("=" * 60)
     
-    print(f"\n🚀 Starting QA test with static graph")
+    print(f"\n🚀 Starting QA test with session management")
     print("⚠️ Make sure Chrome browser is available and Studio_Automation folder is accessible")
     
-    # Create and run client
+    # Create and run client with session management
     client = QAClient()
     
     try:

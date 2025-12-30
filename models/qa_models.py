@@ -1,15 +1,18 @@
 """
 QA Agent Pydantic Models - Data structures for QA workflow graph generation
 Similar to UNO's business_function.py but for QA automation
+Enhanced with session management support
 """
 
 from pydantic import BaseModel, Field
 from typing import List, Optional
+from datetime import datetime
 
 class QANode(BaseModel):
     """
     Represents a node in the QA workflow graph.
     Each node corresponds to a QA validation step or automation phase.
+    Enhanced with session awareness.
     """
     id: str = Field(description="Unique identifier for the node (e.g., 'authentication_1', 'requirements_2').")
     type: str = Field(description="Type of the node.")
@@ -21,6 +24,11 @@ class QANode(BaseModel):
     introduction: Optional[str] = Field(None, description="Introductory message for the node based on the type.")
     guided_step: Optional[str] = Field(None, description="Guided step description for user interface.")
     guided_step_complete: Optional[str] = Field(None, description="Message indicating the guided step completion.")
+    
+    # Session-related fields
+    session_uuid: Optional[str] = Field(None, description="Session UUID this node execution belongs to")
+    execution_timestamp: Optional[datetime] = Field(None, description="When this node was executed")
+    execution_duration: Optional[float] = Field(None, description="Duration of node execution in seconds")
 
 class QAEdge(BaseModel):
     """
@@ -43,13 +51,22 @@ class QAGraph(BaseModel):
 class QATestResult(BaseModel):
     """
     Represents the result of a QA test execution.
+    Enhanced with session management.
     """
     node_id: str = Field(description="ID of the node that was executed.")
+    session_uuid: str = Field(description="Session UUID this result belongs to.")
     success: bool = Field(description="Whether the test step was successful.")
     message: str = Field(description="Result message or error description.")
     screenshot_path: Optional[str] = Field(None, description="Path to screenshot taken during execution.")
     execution_time: float = Field(description="Time taken to execute this step in seconds.")
     validation_details: Optional[dict] = Field(None, description="Additional validation details.")
+    timestamp: datetime = Field(default_factory=datetime.now, description="When this result was created.")
+    
+    class Config:
+        """Pydantic configuration"""
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
 
 class QASession(BaseModel):
     """

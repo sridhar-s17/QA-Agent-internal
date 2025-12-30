@@ -33,12 +33,14 @@ class QAWorkflow:
     """
     
     def __init__(self, context):
-        """Initialize QA Workflow with distributed agents"""
+        """Initialize QA Workflow with distributed agents and session management"""
         self.context = context
+        self.session_uuid = context.session_uuid
+        self.session_object = context.session_object
         self.selenium_core = SeleniumAutomationCore(context)
         
-        # Setup logging
-        self.logger = logging.getLogger(f"{__name__}.QAWorkflow")
+        # Setup session-aware logging
+        self.logger = context.logger
         
         # Initialize static QA graph
         self.logger.info("📋 Using static QA graph")
@@ -47,13 +49,13 @@ class QAWorkflow:
         self.nodes = {node.id: node for node in self.graph.nodes}
         self.edges = self._build_edges_dict()
         
-        # Execution state
-        self.outputs = {}  # Store outputs from each node
+        # Execution state (use session object for persistence)
+        self.outputs = self.session_object.outputs  # Shared outputs from session
         self.current_node_id = None
-        self.executed_nodes = []
-        self.failed_nodes = []
+        self.executed_nodes = self.session_object.executed_nodes
+        self.failed_nodes = self.session_object.failed_nodes
         
-        # Initialize all agents
+        # Initialize all agents with session context
         self.agents = {
             "AuthenticationAgent": AuthenticationAgent(self.selenium_core, self.context, self.outputs, "Authentication and setup", "AuthenticationAgent"),
             "RequirementsGatheringAgent": RequirementsGatheringAgent(self.selenium_core, self.context, self.outputs, "Requirements gathering", "RequirementsGatheringAgent"),
@@ -68,7 +70,9 @@ class QAWorkflow:
         }
         
         # Save graph for debugging
-        self.graph.save_to_file("qa_workflow_graph.json")
+        graph_file = os.path.join(self.context.results_dir, "qa_workflow_graph.json")
+        self.graph.save_to_file(graph_file)
+        self.logger.info(f"📊 Workflow graph saved to: {graph_file}")
     
     def _build_edges_dict(self) -> Dict[str, List[Any]]:
         """Build adjacency list representation of graph edges"""
@@ -82,7 +86,7 @@ class QAWorkflow:
     
     async def execute_workflow(self, start_node_id: str = None) -> Dict[str, Any]:
         """
-        Execute the complete QA workflow using distributed agents.
+        Execute the complete QA workflow using distributed agents with session management.
         
         Args:
             start_node_id (str): Node ID to start execution from (default: start node)
@@ -90,11 +94,15 @@ class QAWorkflow:
         Returns:
             Dict[str, Any]: Workflow execution result
         """
-        self.logger.info("🚀 Starting QA Workflow execution (Distributed Agents)")
+        self.logger.info("🚀 Starting QA Workflow execution (Session-Aware)")
+        self.logger.info(f"🆔 Session UUID: {self.session_uuid}")
         
         workflow_start_time = datetime.now()
         
         try:
+            # Update session status
+            self.context.session_manager.update_session_status(self.session_uuid, "running")
+            
             # Find start node
             if not start_node_id:
                 start_node = self.graph.get_start_node()
@@ -109,13 +117,16 @@ class QAWorkflow:
             ready_nodes = [start_node_id]
             is_end_node = await self._execute_graph(ready_nodes)
             
+            # Update session status based on result
             if is_end_node:
+                self.context.session_manager.update_session_status(self.session_uuid, "completed")
                 return self._create_workflow_result(
                     success=True,
                     message="QA Workflow completed successfully",
                     start_time=workflow_start_time
                 )
             else:
+                self.context.session_manager.update_session_status(self.session_uuid, "failed")
                 return self._create_workflow_result(
                     success=False,
                     message="Workflow execution incomplete",
@@ -125,6 +136,7 @@ class QAWorkflow:
         except Exception as e:
             error_msg = f"Workflow execution failed: {e}"
             self.logger.error(error_msg)
+            self.context.session_manager.update_session_status(self.session_uuid, "failed")
             return self._create_workflow_result(
                 success=False,
                 message=error_msg,
@@ -166,10 +178,15 @@ class QAWorkflow:
                 response = await self._execute_node(current_node)
                 self.logger.info(f"📊 Response from Node: {current_node_id} - {response.get('type', 'unknown')}")
                 
-                # Store response
+                # Store response in session object
                 self.outputs[current_node_id] = response.get("message", "SUCCESS")
                 self.context.test_results[current_node_id] = response
                 self.current_node_id = current_node_id
+                
+                # Update session object with execution state
+                if current_node_id not in self.executed_nodes:
+                    self.executed_nodes.append(current_node_id)
+                    self.session_object.executed_nodes = self.executed_nodes
                 
                 # Check if this is an end node
                 if current_node.type == "EndAgent":
@@ -179,7 +196,9 @@ class QAWorkflow:
                 # Check if execution should break (error or confirmation needed)
                 if response.get("type") == "error":
                     self.logger.error(f"❌ Node {current_node_id} failed: {response.get('message')}")
-                    self.failed_nodes.append(current_node_id)
+                    if current_node_id not in self.failed_nodes:
+                        self.failed_nodes.append(current_node_id)
+                        self.session_object.failed_nodes = self.failed_nodes
                     return False
                 
                 # Add guided step complete message
@@ -193,12 +212,16 @@ class QAWorkflow:
                 self.logger.info(f"🔗 Next nodes from {current_node_id} with status {output_status}: {[n.id for n in next_nodes]}")
                 ready_nodes.extend([node.id for node in next_nodes])
                 
-                self.executed_nodes.append(current_node_id)
+                # Save session state periodically
+                if len(self.executed_nodes) % 3 == 0:  # Save every 3 nodes
+                    self.context.session_manager.save_session(self.session_uuid)
                 
             except Exception as e:
                 error_msg = f"Node {current_node_id} execution failed: {e}"
                 self.logger.error(error_msg)
-                self.failed_nodes.append(current_node_id)
+                if current_node_id not in self.failed_nodes:
+                    self.failed_nodes.append(current_node_id)
+                    self.session_object.failed_nodes = self.failed_nodes
                 return False
         
         return False  # No more nodes to execute but didn't reach end
@@ -242,11 +265,14 @@ class QAWorkflow:
     
 
     async def _cleanup_workflow(self):
-        """Cleanup workflow resources"""
+        """Cleanup workflow resources with session management"""
         try:
             self.logger.info("🧹 Cleaning up workflow resources...")
             
-            # Save test results
+            # Save final session state
+            self.context.session_manager.save_session(self.session_uuid)
+            
+            # Save test results (includes session save)
             results_file = self.context.save_results()
             self.logger.info(f"💾 Test results saved to: {results_file}")
             
